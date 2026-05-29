@@ -1,9 +1,14 @@
 // ==========================================
 // CONFIGURATION GLOBALE ET VARIABLES DU JEU
 // ==========================================
-const canvas = document.getElementById("canvas");
+// CORRECTION : Utilisation de 'gameCanvas' comme sur ton GitHub
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const tileSize = 20;
+
+// Dimensions exactes de ton projet (25 colonnes x 30 lignes)
+canvas.width = 500;
+canvas.height = 600;
 
 let score = 0;
 let lives = 3;
@@ -20,13 +25,13 @@ let frightenedDuration = 7000;
 let pacmanSpeedBonusActive = false;
 let pacmanSpeedBonusTimer = 0;
 
-// Variable essentielle pour gérer le rythme des animations (bouche, clignotements)
+// Compteur d'images pour gérer le rythme des animations (bouche, clignotements)
 let animationFrame = 0;
 
-// Définition de Pac-Man
+// Définition de Pac-Man (Replacé au centre bas de ta grille 25x30)
 let pacman = {
-    x: 14 * tileSize,
-    y: 26 * tileSize,
+    x: 12 * tileSize,
+    y: 20 * tileSize,
     dx: 0,
     dy: 0,
     nextDx: 0,
@@ -35,57 +40,51 @@ let pacman = {
     currentSpeed: 2
 };
 
-// Liste des fantômes (le 4ème est configuré comme le "boss")
+// Liste des 4 fantômes (ajustés pour démarrer dans la zone centrale de ta grille)
 let ghosts = [
-    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" },
-    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" },
-    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" },
-    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" } // Le Boss qui traque le joueur
+    { x: 11 * tileSize, y: 10 * tileSize, dx: 2, dy: 0, color: "red", type: "normal" },
+    { x: 12 * tileSize, y: 10 * tileSize, dx: -2, dy: 0, color: "pink", type: "normal" },
+    { x: 13 * tileSize, y: 10 * tileSize, dx: 2, dy: 0, color: "cyan", type: "normal" },
+    { x: 12 * tileSize, y: 10 * tileSize, dx: 0, dy: -2, color: "orange", type: "boss" }
 ];
 
 // ==========================================
-// CONCEPTION DES NIVEAUX (Cartes de 30x35)
-// 0: Gomme, 1: Mur, 2: Vide, 3: Super-Gomme, 4: Bonus Vitesse
+// CARTE DU JEU AJUSTÉE EN 25 COLONNES x 30 LIGNES
+// 0: Gomme, 1: Mur, 2: Vide/Spawn, 3: Super-Gomme, 4: Bonus Vitesse
 // ==========================================
 const templateMap = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,4,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,4,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,0,1,1,1,1,1,2,2,1,1,2,2,1,1,1,1,1,0,1,1,1,1,1,1],
-    [2,2,2,2,2,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,2,2,2,2,2],
-    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,2,2,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
-    [2,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2,2,0,2,2,2,2,2,2],
-    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
-    [2,2,2,2,2,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,2,2,2,2,2],
-    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
-    [1,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,0,0,0,1,1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,1,1,0,0,0,1],
-    [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,3,0,0,1,1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,1,1,0,0,3,1],
-    [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
-    [1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,3,1],
+    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,1,1,1,1,2,1,2,1,1,1,1,1,0,1,1,1,1,1],
+    [2,2,2,2,1,0,1,2,2,2,2,2,2,2,2,2,2,2,1,0,1,2,2,2,2],
+    [1,1,1,1,1,0,1,2,1,1,1,1,2,1,1,1,1,2,1,0,1,1,1,1,1],
+    [1,2,2,2,2,0,2,2,1,2,2,2,2,2,2,2,1,2,2,0,2,2,2,2,1],
+    [1,1,1,1,1,0,1,2,1,1,1,1,1,1,1,1,1,2,1,0,1,1,1,1,1],
+    [2,2,2,2,1,0,1,2,2,2,2,2,2,2,2,2,2,2,1,0,1,2,2,2,2],
+    [1,1,1,1,1,0,1,2,1,1,1,1,1,1,1,1,1,2,1,0,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,3,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,0,3,1],
+    [1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,4,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,4,1],
+    [1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// Génération des 3 niveaux requis
 const allLevels = [templateMap, templateMap, templateMap];
 
 // ==========================================
@@ -96,30 +95,39 @@ function countTotalDots() {
     let count = 0;
     for (let r = 0; r < currentMap.length; r++) {
         for (let c = 0; c < currentMap[r].length; c++) {
-            if (currentMap[r][c] === 0 || currentMap[r][c] === 3) {
-                count++;
-            }
+            if (currentMap[r][c] === 0 || currentMap[r][c] === 3) count++;
         }
     }
     return count;
 }
 
 function isWall(x, y) {
-    if (x < 0 || x >= 30 * tileSize || y < 0 || y >= 35 * tileSize) return true;
+    if (x < 0 || x >= 25 * tileSize || y < 0 || y >= 30 * tileSize) return true;
     let tileX = Math.floor(x / tileSize);
     let tileY = Math.floor(y / tileSize);
     return currentMap[tileY][tileX] === 1;
 }
 
+function updateUI() {
+    // Gestion multi-langue automatique pour éviter les crashs selon tes ID HTML
+    let scoreEl = document.getElementById("score") || document.getElementById("scoreDisplay");
+    let lvlEl = document.getElementById("level") || document.getElementById("niveau");
+    let livesEl = document.getElementById("lives") || document.getElementById("vies");
+
+    if (scoreEl) scoreEl.innerText = score;
+    if (lvlEl) lvlEl.innerText = (currentLevelIndex + 1) + "/5";
+    if (livesEl) livesEl.innerText = lives;
+}
+
 function initLevel() {
     currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
-    pacman.x = 14 * tileSize;
-    pacman.y = 26 * tileSize;
+    pacman.x = 12 * tileSize;
+    pacman.y = 20 * tileSize;
     pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
     
     ghosts.forEach((g, idx) => {
-        g.x = (12 + (idx % 5)) * tileSize;
-        g.y = 17 * tileSize;
+        g.x = (11 + (idx % 3)) * tileSize;
+        g.y = 10 * tileSize;
         g.dx = (idx % 2 === 0) ? 2 : -2;
         g.dy = 0;
     });
@@ -129,16 +137,15 @@ function initLevel() {
     frightenedTimer = 0;
     frightenedDuration = Math.max(3000, 9000 - (currentLevelIndex * 1500));
     
-    // FIX : Choix de vitesses entières obligatoires (diviseurs de 20)
     pacman.baseSpeed = currentLevelIndex >= 2 ? 4 : 2; 
     pacman.currentSpeed = pacman.baseSpeed;
 
-    let lvlEl = document.getElementById("level");
-    if (lvlEl) lvlEl.innerText = currentLevelIndex + 1;
+    updateUI();
 }
 
-// FIX : Activation et liaison des boutons tactiles à l'écran
+// LIAISON DES TOUCHES SUR L'ÉCRAN (TACTILE ET CLIC)
 function setupMobileControls() {
+    // RECOMMANDATION : Assure-toi que tes boutons dans index.html ont bien ces ID précis !
     const buttons = {
         'btn-up': { dx: 0, dy: -1 },
         'btn-down': { dx: 0, dy: 1 },
@@ -150,7 +157,7 @@ function setupMobileControls() {
         const btn = document.getElementById(id);
         if (btn) {
             const handlePress = (e) => {
-                e.preventDefault(); // Empêche l'écran de scroller sur mobile
+                e.preventDefault(); 
                 pacman.nextDx = dir.dx * pacman.currentSpeed;
                 pacman.nextDy = dir.dy * pacman.currentSpeed;
             };
@@ -176,11 +183,9 @@ window.addEventListener("keydown", e => {
 function update() {
     if (gameOver || gameWon) return;
 
-    animationFrame++; // Incrémentation constante pour animer le rendu visuel
+    animationFrame++; // Rythme l'avancement des animations à chaque frame
 
-    if (frightenedTimer > 0) {
-        frightenedTimer -= 16.66; 
-    }
+    if (frightenedTimer > 0) frightenedTimer -= 16.66; 
 
     if (pacmanSpeedBonusActive) {
         pacmanSpeedBonusTimer -= 16.66;
@@ -190,15 +195,7 @@ function update() {
         }
     }
 
-    // Autoriser le redémarrage immédiat si Pac-Man s'arrête net sur un mur
-    if (pacman.dx === 0 && pacman.dy === 0) {
-        if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
-            pacman.dx = pacman.nextDx;
-            pacman.dy = pacman.nextDy;
-        }
-    }
-
-    // Pivotement aux intersections (alignement parfait sur la grille)
+    // Gestion des virages et alignement sur la grille
     if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
         if (pacman.x % tileSize === 0 && pacman.y % tileSize === 0) {
             if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
@@ -208,7 +205,7 @@ function update() {
         }
     }
 
-    // Avancement de Pac-Man
+    // Avancement Pac-Man
     if (!isWall(pacman.x + (pacman.dx > 0 ? tileSize : pacman.dx < 0 ? -1 : 0), pacman.y + (pacman.dy > 0 ? tileSize : pacman.dy < 0 ? -1 : 0))) {
         pacman.x += pacman.dx;
         pacman.y += pacman.dy;
@@ -217,36 +214,36 @@ function update() {
         pacman.dy = 0;
     }
 
-    // Gestion des tunnels latéraux (téléportation)
+    // Tunnels latéraux
     if (pacman.x < 0) pacman.x = canvas.width - tileSize;
     if (pacman.x >= canvas.width) pacman.x = 0;
 
-    // Analyse de la case centrale
+    // Prise des objets
     let centerTileX = Math.floor((pacman.x + tileSize/2) / tileSize);
     let centerTileY = Math.floor((pacman.y + tileSize/2) / tileSize);
 
-    if (centerTileX >= 0 && centerTileX < 30 && centerTileY >= 0 && centerTileY < 35) {
+    if (centerTileX >= 0 && centerTileX < 25 && centerTileY >= 0 && centerTileY < 30) {
         let item = currentMap[centerTileY][centerTileX];
         if (item === 0) {
             currentMap[centerTileY][centerTileX] = 2;
             score += 10;
             dotsEaten++;
+            updateUI();
         } else if (item === 3) {
             currentMap[centerTileY][centerTileX] = 2;
             score += 50;
             dotsEaten++;
             frightenedTimer = frightenedDuration;
+            updateUI();
         } else if (item === 4) {
             currentMap[centerTileY][centerTileX] = 2;
             score += 500;
             pacmanSpeedBonusActive = true;
             pacmanSpeedBonusTimer = 4000;
             pacman.currentSpeed = pacman.baseSpeed === 2 ? 4 : 5; 
+            updateUI();
         }
     }
-
-    let scoreEl = document.getElementById("score");
-    if (scoreEl) scoreEl.innerText = score;
 
     if (dotsEaten >= totalDots) {
         if (currentLevelIndex < allLevels.length - 1) {
@@ -257,15 +254,11 @@ function update() {
         }
     }
 
-    // TRAITEMENT ET MOUVEMENT DES FANTÔMES
+    // Mouvement des Fantômes
     ghosts.forEach(g => {
         let ghostSpeed = currentLevelIndex >= 2 ? 4 : 2; 
-        if (frightenedTimer > 0 && g.type !== "boss") {
-            ghostSpeed = 1; 
-        }
-        if (g.type === "boss") {
-            ghostSpeed = currentLevelIndex >= 2 ? 5 : 4; 
-        }
+        if (frightenedTimer > 0 && g.type !== "boss") ghostSpeed = 1; 
+        if (g.type === "boss") ghostSpeed = currentLevelIndex >= 2 ? 5 : 4; 
 
         if (g.x % tileSize === 0 && g.y % tileSize === 0) {
             let possibleDirs = [];
@@ -273,15 +266,11 @@ function update() {
             
             dirs.forEach(d => {
                 if (!isWall(g.x + (d.x > 0 ? tileSize : d.x < 0 ? -1 : 0), g.y + (d.y > 0 ? tileSize : d.y < 0 ? -1 : 0))) {
-                    if (!(d.x === -g.dx && d.y === -g.dy)) {
-                        possibleDirs.push(d);
-                    }
+                    if (!(d.x === -g.dx && d.y === -g.dy)) possibleDirs.push(d);
                 }
             });
 
-            if (possibleDirs.length === 0) {
-                possibleDirs.push({x: -g.dx, y: -g.dy});
-            }
+            if (possibleDirs.length === 0) possibleDirs.push({x: -g.dx, y: -g.dy});
 
             if (g.type === "boss" && Math.random() < 0.7 && possibleDirs.length > 0) {
                 possibleDirs.sort((a, b) => {
@@ -301,22 +290,22 @@ function update() {
         g.x += g.dx;
         g.y += g.dy;
 
-        // VÉRIFICATION CHOC ET MORT
+        // Chocs et gestion des vies
         let distance = Math.hypot((g.x + tileSize/2) - (pacman.x + tileSize/2), (g.y + tileSize/2) - (pacman.y + tileSize/2));
         if (distance < tileSize * 0.8) {
             if (frightenedTimer > 0 && g.type !== "boss") {
                 score += 200;
-                g.x = 14 * tileSize;
-                g.y = 17 * tileSize;
+                g.x = 12 * tileSize;
+                g.y = 10 * tileSize;
+                updateUI();
             } else {
                 lives--;
-                let livesEl = document.getElementById("lives");
-                if (livesEl) livesEl.innerText = lives;
+                updateUI();
                 if (lives <= 0) {
                     gameOver = true;
                 } else {
-                    pacman.x = 14 * tileSize;
-                    pacman.y = 26 * tileSize;
+                    pacman.x = 12 * tileSize;
+                    pacman.y = 20 * tileSize;
                     pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
                 }
             }
@@ -325,11 +314,11 @@ function update() {
 }
 
 // ==========================================
-// RECOUVREMENT ET RENDU GRAPHIQUE (DRAW)
+// RENDU GRAPHIQUE ET ANIMATIONS (DRAW)
 // ==========================================
 
 function drawPacman() {
-    // ANIMATION DE LA BOUCHE : On calcule la taille d'ouverture via un sinus oscillant
+    // ANIMATION DE LA BOUCHE
     let mouthSize = 0;
     if (pacman.dx !== 0 || pacman.dy !== 0) {
         mouthSize = Math.abs(Math.sin(animationFrame * 0.25)) * 0.4; 
@@ -338,7 +327,6 @@ function drawPacman() {
     let startAngle = mouthSize;
     let endAngle = 2 * Math.PI - mouthSize;
 
-    // Ajustement de la rotation selon l'axe de déplacement
     let rotation = 0;
     if (pacman.dx > 0) rotation = 0;
     if (pacman.dy > 0) rotation = Math.PI / 2;
@@ -364,7 +352,7 @@ function drawGhosts() {
         ctx.beginPath();
         ctx.arc(g.x + tileSize / 2, g.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
         
-        // ANIMATION CLIGNOTEMENT : Blanc/bleu alterné durant les 2 dernières secondes
+        // ANIMATION CLIGNOTEMENT FANTÔMES BLEU/BLANC SUR LA FIN DELA SUPER GOMME
         if (frightenedTimer > 0 && g.type !== "boss") {
             if (frightenedTimer < 2000 && Math.floor(frightenedTimer / 150) % 2 === 0) {
                 ctx.fillStyle = "white"; 
@@ -378,7 +366,7 @@ function drawGhosts() {
         ctx.fill();
         ctx.closePath();
 
-        // Ajout d'yeux simples pour parfaire l'animation des fantômes
+        // Yeux animés qui regardent dans la direction du déplacement
         ctx.fillStyle = "white";
         ctx.beginPath();
         ctx.arc(g.x + 6, g.y + 6, 3, 0, 2 * Math.PI);
@@ -407,7 +395,7 @@ function drawMap() {
             } else if (item === 3) {
                 ctx.fillStyle = "orange";
                 ctx.beginPath();
-                // Légère oscillation de taille sur les super gommes
+                // Animation de pulsation des Super-Gommes
                 let pulse = Math.sin(animationFrame * 0.1) * 1.5;
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6 + pulse, 0, 2 * Math.PI);
                 ctx.fill();
@@ -442,16 +430,13 @@ function draw() {
     }
 }
 
-// ==========================================
-// BOUCLE PRINCIPALE (GAME LOOP)
-// ==========================================
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Lancement global au chargement
+// Démarrage automatique
 initLevel();
 setupMobileControls();
 gameLoop();
