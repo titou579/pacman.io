@@ -5,7 +5,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const tileSize = 20;
 
-// Grille exacte de ton projet (25 colonnes x 30 lignes)
+// Grille exacte (25 colonnes x 30 lignes)
 canvas.width = 500;
 canvas.height = 600;
 
@@ -20,14 +20,9 @@ let dotsEaten = 0;
 let totalDots = 0;
 
 let frightenedTimer = 0;
-let frightenedDuration = 8000; // Plus court pour le mode difficile
-let pacmanSpeedBonusActive = false;
-let pacmanSpeedBonusTimer = 0;
+let frightenedDuration = 8000; 
 
-// Variable pour animer la bouche de Pac-Man
-let animationFrame = 0;
-
-// Définition de Pac-Man (Replacé selon la map)
+// Définition de Pac-Man
 let pacman = {
     x: 0,
     y: 0,
@@ -39,18 +34,17 @@ let pacman = {
     currentSpeed: 2
 };
 
-// Liste des fantômes avec le nouveau mob spécial "Trolly" (Vert)
+// Liste des fantômes avec "Trolly" (Vert)
 let ghosts = [
-    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" },   // Inky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" },  // Pinky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" },  // Blinky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" },  // Boss Orange
-    { x: 0, y: 0, dx: 0, dy: 0, color: "#00FF00", type: "troll" } // NOUVEAU MOB : "Trolly" (Vert)
+    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" },   
+    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" },  
+    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" },  
+    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" },  
+    { x: 0, y: 0, dx: 0, dy: 0, color: "#00FF00", type: "troll" } 
 ];
 
 // ==========================================
-// CONFIGURATION DES 5 CARTES DIFFICILES (HARDCORE MODE)
-// 0: Gomme rose, 1: Mur bleu, 2: Vide/Spawn, 3: Super Gomme blanche
+// LES 5 NIVEAUX DU JEU (MATRICES REPRÉSENTÉES EN ENTIER)
 // ==========================================
 
 const map1 = [
@@ -154,9 +148,9 @@ const map3 = [
 
 const map4 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
-    [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
+    [1,3,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,3,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
     [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
@@ -202,7 +196,7 @@ const map5 = [
     [1,1,1,1,1,0,1,2,1,1,1,1,1,1,1,1,1,2,1,0,1,1,1,1,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1],
-    [1,3,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,0,3,1],
+    [1,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,0,0,1],
     [1,1,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1],
     [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
@@ -218,12 +212,11 @@ const map5 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-const allLevels = [map1, map2, map3, map4, map5]; // Les 5 maps hardcore
+const allLevels = [map1, map2, map3, map4, map5];
 
 // ==========================================
-// FONCTIONS DE LOGIQUE ET INITIALISATION
+// FONCTIONS DE LOGIQUE ET DE MISE À JOUR
 // ==========================================
-
 function countTotalDots() {
     let count = 0;
     for (let r = 0; r < currentMap.length; r++) {
@@ -242,22 +235,19 @@ function isWall(x, y) {
 }
 
 function updateUI() {
-    let scoreEl = document.getElementById("scoreDisplay");
-    let lvlEl = document.getElementById("niveauDisplay");
-    let livesEl = document.getElementById("viesDisplay");
+    let scoreEl = document.getElementById("scoreDisplay") || document.getElementById("score");
+    let lvlEl = document.getElementById("niveauDisplay") || document.getElementById("level");
+    let livesEl = document.getElementById("viesDisplay") || document.getElementById("lives") || document.getElementById("livesDisplay");
 
     if (scoreEl) scoreEl.innerText = score;
     if (lvlEl) lvlEl.innerText = (currentLevelIndex + 1); 
     if (livesEl) livesEl.innerText = lives;
 }
 
-// Positionnement dynamique Pac-Man selon la carte
 function getStartPos(map) {
     for(let r = map.length - 2; r > 0; r--) {
         for(let c = 1; c < map[r].length - 1; c++) {
-            if (map[r][c] === 0 || map[r][c] === 2) {
-                return { x: c * tileSize, y: r * tileSize };
-            }
+            if (map[r][c] === 0 || map[r][c] === 2) return { x: c * tileSize, y: r * tileSize };
         }
     }
     return { x: 12 * tileSize, y: 20 * tileSize };
@@ -270,7 +260,6 @@ function initLevel() {
     pacman.y = pos.y;
     pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
     
-    // Positionnement fantômes
     ghosts.forEach((g, idx) => {
         g.x = (11 + (idx % 3)) * tileSize;
         g.y = 10 * tileSize;
@@ -288,9 +277,7 @@ function initLevel() {
     updateUI();
 }
 
-// Configuration automatique et complète des contrôles tactiles
 function setupMobileControls() {
-    // Injecte automatiquement la manette mobile sous le Canvas s'ils n'existent pas
     if (!document.getElementById('btn-up')) {
         const mobileCtrl = document.createElement('div');
         mobileCtrl.style.textAlign = 'center';
@@ -302,11 +289,7 @@ function setupMobileControls() {
             <button id="btn-down" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">▼</button>
             <button id="btn-right" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">▶</button>
         `;
-        if (canvas && canvas.parentNode) {
-            canvas.parentNode.insertBefore(mobileCtrl, canvas.nextSibling);
-        } else {
-            document.body.appendChild(mobileCtrl);
-        }
+        if (canvas && canvas.parentNode) canvas.parentNode.insertBefore(mobileCtrl, canvas.nextSibling);
     }
 
     const buttons = {
@@ -339,29 +322,19 @@ window.addEventListener("keydown", e => {
     }
 });
 
-// ==========================================
-// LOGIQUE DU SCREAMER (JUMP SCARE INFECTIEUX)
-// ==========================================
 function triggerScreamer() {
     const overlay = document.getElementById('screamer-overlay');
     const sound = document.getElementById('scream-sound');
-    
     if (overlay && sound) {
         sound.currentTime = 0; 
         overlay.style.display = 'flex'; 
-        
-        sound.play().catch(error => console.log("Le son a été bloqué par le navigateur:", error));
-        
-        // Cache le screamer après 2.5 secondes et reset proprement le jeu
+        sound.play().catch(err => console.log(err));
         setTimeout(() => {
             overlay.style.display = 'none';
             resetEntireGame();
         }, 2500);
     } else {
-        // Fallback s'il manque les éléments DOM
-        setTimeout(() => {
-            resetEntireGame();
-        }, 2500);
+        setTimeout(resetEntireGame, 2500);
     }
 }
 
@@ -374,17 +347,11 @@ function resetEntireGame() {
     initLevel();
 }
 
-// ==========================================
-// BOUCLE DE MISE À JOUR (UPDATE)
-// ==========================================
 function update() {
     if (gameOver || gameWon) return;
 
-    animationFrame++; 
-
     if (frightenedTimer > 0) frightenedTimer -= 16.66; 
 
-    // Fluidité des virages sur la grille
     if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
         if (pacman.x % tileSize === 0 && pacman.y % tileSize === 0) {
             if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
@@ -402,11 +369,9 @@ function update() {
         pacman.dy = 0;
     }
 
-    // Tunnels latéraux
     if (pacman.x < 0) pacman.x = canvas.width - tileSize;
     if (pacman.x >= canvas.width) pacman.x = 0;
 
-    // Manger les gommes
     let centerTileX = Math.floor((pacman.x + tileSize/2) / tileSize);
     let centerTileY = Math.floor((pacman.y + tileSize/2) / tileSize);
 
@@ -435,17 +400,12 @@ function update() {
         }
     }
 
-    // Fantômes
     ghosts.forEach(g => {
         let ghostSpeed = currentLevelIndex >= 2 ? 4 : 2; 
         
-        // Trolly accélère au lieu de ralentir s'il a peur !
         if (frightenedTimer > 0) {
-            if (g.type === "troll") {
-                ghostSpeed = 4; // Accélère
-            } else if (g.type !== "boss") {
-                ghostSpeed = 1; // Ralentit standard
-            }
+            if (g.type === "troll") ghostSpeed = 4; 
+            else if (g.type !== "boss") ghostSpeed = 1; 
         }
 
         if (g.x % tileSize === 0 && g.y % tileSize === 0) {
@@ -478,10 +438,8 @@ function update() {
         g.x += g.dx;
         g.y += g.dy;
 
-        // Collisions
         let distance = Math.hypot((g.x + tileSize/2) - (pacman.x + tileSize/2), (g.y + tileSize/2) - (pacman.y + tileSize/2));
         if (distance < tileSize * 0.7) {
-            // Trolly reste mortel même en peur
             if (frightenedTimer > 0 && g.type !== "boss" && g.type !== "troll") {
                 score += 200;
                 g.x = 12 * tileSize;
@@ -502,36 +460,15 @@ function update() {
 }
 
 // ==========================================
-// RENDU GRAPHIQUE RESTAURÉ (DRAW)
+// RENDU GRAPHIQUE RESTAURÉ (TEXTURING SIMPLE ET STATIQUE)
 // ==========================================
 
 function drawPacman() {
-    let mouthSize = 0;
-    if (pacman.dx !== 0 || pacman.dy !== 0) {
-        mouthSize = Math.abs(Math.sin(animationFrame * 0.25)) * 0.4; 
-    }
-
-    let startAngle = mouthSize;
-    let endAngle = 2 * Math.PI - mouthSize;
-
-    let rotation = 0;
-    if (pacman.dx > 0) rotation = 0;
-    if (pacman.dy > 0) rotation = Math.PI / 2;
-    if (pacman.dx < 0) rotation = Math.PI;
-    if (pacman.dy < 0) rotation = 3 * Math.PI / 2;
-
-    ctx.save();
-    ctx.translate(pacman.x + tileSize / 2, pacman.y + tileSize / 2);
-    ctx.rotate(rotation);
-
     ctx.beginPath();
-    ctx.arc(0, 0, (tileSize / 2) - 1, startAngle, endAngle);
-    ctx.lineTo(0, 0);
+    ctx.arc(pacman.x + tileSize / 2, pacman.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
     ctx.fillStyle = "yellow";
     ctx.fill();
     ctx.closePath();
-    
-    ctx.restore();
 }
 
 function drawGhosts() {
@@ -541,34 +478,17 @@ function drawGhosts() {
         
         if (frightenedTimer > 0) {
             if (g.type === "troll") {
-                ctx.fillStyle = "#FF0000"; // Trolly devient rouge sang
+                ctx.fillStyle = "#FF0000"; 
             } else if (g.type !== "boss") {
-                if (frightenedTimer < 2000 && Math.floor(frightenedTimer / 150) % 2 === 0) {
-                    ctx.fillStyle = "white"; 
-                } else {
-                    ctx.fillStyle = "blue";
-                }
+                ctx.fillStyle = "blue"; 
             } else {
                 ctx.fillStyle = g.color; 
             }
         } else {
             ctx.fillStyle = g.color;
         }
-        
         ctx.fill();
         ctx.closePath();
-
-        // Yeux des fantômes
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(g.x + 6, g.y + 6, 3, 0, 2 * Math.PI);
-        ctx.arc(g.x + 14, g.y + 6, 3, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.fillStyle = "black";
-        ctx.beginPath();
-        ctx.arc(g.x + 6 + (g.dx * 0.5), g.y + 6 + (g.dy * 0.5), 1.5, 0, 2 * Math.PI);
-        ctx.arc(g.x + 14 + (g.dx * 0.5), g.y + 6 + (g.dy * 0.5), 1.5, 0, 2 * Math.PI);
-        ctx.fill();
     });
 }
 
@@ -587,8 +507,7 @@ function drawMap() {
             } else if (item === 3) {
                 ctx.fillStyle = "#FFFFFF"; 
                 ctx.beginPath();
-                let pulse = Math.sin(animationFrame * 0.2) * 1.5;
-                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6 + pulse, 0, 2 * Math.PI);
+                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6, 0, 2 * Math.PI);
                 ctx.fill();
             }
         }
