@@ -40,13 +40,12 @@ let pacman = {
 };
 
 // Liste des fantômes avec le nouveau mob spécial "Trolly" (Vert)
-// NOTE : Trolly est de type "troll".
 let ghosts = [
-    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" }, // Inky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" }, // Pinky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" }, // Blinky
-    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" },  // Boss Orange (Boss Crimson d'avant)
-    { x: 0, y: 0, dx: 0, dy: 0, color: "#00FF00", type: "troll" } // NOUVEAU MOB : "Trolly" (Méta-Fantôme Vert)
+    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" },   // Inky
+    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" },  // Pinky
+    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" },  // Blinky
+    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" },  // Boss Orange
+    { x: 0, y: 0, dx: 0, dy: 0, color: "#00FF00", type: "troll" } // NOUVEAU MOB : "Trolly" (Vert)
 ];
 
 // ==========================================
@@ -54,7 +53,6 @@ let ghosts = [
 // 0: Gomme rose, 1: Mur bleu, 2: Vide/Spawn, 3: Super Gomme blanche
 // ==========================================
 
-// MAP 1 : Le Labyrinthe Serré (Peu d'espace pour esquiver)
 const map1 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1],
@@ -70,7 +68,7 @@ const map1 = [
     [1,0,0,0,0,1,3,1,1,1,1,0,1,0,1,1,1,1,3,1,0,0,0,0,1],
     [1,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0,1],
     [1,0,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,1],
-    [1,1,0,1,1,1,0,1,0,0,0,0,1,0,0,0,0,1,0,1,1,1,0,1,1],
+    [1,1,0,1,1,1,0,1,0,0,0,0,1,0,0,0,0,1,0,1,1,1,0,1],
     [1,0,0,0,0,1,0,0,0,1,1,0,0,0,1,1,0,0,0,1,0,0,0,0,1],
     [1,0,1,1,0,1,1,1,0,1,3,0,1,0,3,1,0,1,1,1,0,1,1,0,1],
     [1,0,0,1,0,0,0,1,0,1,1,1,1,1,1,1,0,1,0,0,0,1,0,0,1],
@@ -88,7 +86,6 @@ const map1 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// MAP 2 : Les Îles Isolées (Obligation de passer par des goulots)
 const map2 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
@@ -122,7 +119,6 @@ const map2 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// MAP 3 : Le Grand H (Concentration centrale dangereuse)
 const map3 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,3,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,3,1],
@@ -156,7 +152,6 @@ const map3 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// MAP 4 : Le V inversé (Dédale complexe en bas)
 const map4 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
@@ -190,7 +185,6 @@ const map4 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// MAP 5 : Le Boss Final (Symétrie trompeuse et chemins uniques)
 const map5 = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,3,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,3,1],
@@ -253,14 +247,12 @@ function updateUI() {
     let livesEl = document.getElementById("viesDisplay");
 
     if (scoreEl) scoreEl.innerText = score;
-    // CORRECTION : Affiche uniquement le chiffre propre pour éviter le bug d'affichage
     if (lvlEl) lvlEl.innerText = (currentLevelIndex + 1); 
     if (livesEl) livesEl.innerText = lives;
 }
 
 // Positionnement dynamique Pac-Man selon la carte
 function getStartPos(map) {
-    // Parcourt la map de bas en haut pour trouver une case libre
     for(let r = map.length - 2; r > 0; r--) {
         for(let c = 1; c < map[r].length - 1; c++) {
             if (map[r][c] === 0 || map[r][c] === 2) {
@@ -268,7 +260,6 @@ function getStartPos(map) {
             }
         }
     }
-    // Par défaut
     return { x: 12 * tileSize, y: 20 * tileSize };
 }
 
@@ -291,15 +282,33 @@ function initLevel() {
     totalDots = countTotalDots();
     frightenedTimer = 0;
     
-    // CORRECTION : Vitesses entières (diviseurs de 20) obligatoires
     pacman.baseSpeed = currentLevelIndex >= 2 ? 4 : 2; 
     pacman.currentSpeed = pacman.baseSpeed;
 
     updateUI();
 }
 
+// Configuration automatique et complète des contrôles tactiles
 function setupMobileControls() {
-    // RECOMMANDATION : Assure-toi que tes boutons dans index.html ont bien ces ID précis !
+    // Injecte automatiquement la manette mobile sous le Canvas s'ils n'existent pas
+    if (!document.getElementById('btn-up')) {
+        const mobileCtrl = document.createElement('div');
+        mobileCtrl.style.textAlign = 'center';
+        mobileCtrl.style.margin = '15px auto';
+        mobileCtrl.style.maxWidth = '200px';
+        mobileCtrl.innerHTML = `
+            <button id="btn-up" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">▲</button><br>
+            <button id="btn-left" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">◀</button>
+            <button id="btn-down" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">▼</button>
+            <button id="btn-right" style="width:60px; height:45px; margin:5px; font-weight:bold; font-size:18px;">▶</button>
+        `;
+        if (canvas && canvas.parentNode) {
+            canvas.parentNode.insertBefore(mobileCtrl, canvas.nextSibling);
+        } else {
+            document.body.appendChild(mobileCtrl);
+        }
+    }
+
     const buttons = {
         'btn-up': { dx: 0, dy: -1 },
         'btn-down': { dx: 0, dy: 1 },
@@ -331,24 +340,38 @@ window.addEventListener("keydown", e => {
 });
 
 // ==========================================
-// LOGIQUE DU SCREAMER (JUMP SCARE)
+// LOGIQUE DU SCREAMER (JUMP SCARE INFECTIEUX)
 // ==========================================
 function triggerScreamer() {
     const overlay = document.getElementById('screamer-overlay');
     const sound = document.getElementById('scream-sound');
     
     if (overlay && sound) {
-        sound.currentTime = 0; // Remet le son au début
-        overlay.style.display = 'flex'; // Affiche la superposition
+        sound.currentTime = 0; 
+        overlay.style.display = 'flex'; 
         
-        // Joue le son. Attention, les navigateurs modernes bloquent le son sans interaction utilisateur préalable.
         sound.play().catch(error => console.log("Le son a été bloqué par le navigateur:", error));
         
-        // Cache le screamer après 1.5 secondes
+        // Cache le screamer après 2.5 secondes et reset proprement le jeu
         setTimeout(() => {
             overlay.style.display = 'none';
-        }, 1500);
+            resetEntireGame();
+        }, 2500);
+    } else {
+        // Fallback s'il manque les éléments DOM
+        setTimeout(() => {
+            resetEntireGame();
+        }, 2500);
     }
+}
+
+function resetEntireGame() {
+    score = 0;
+    lives = 3;
+    gameOver = false;
+    gameWon = false;
+    currentLevelIndex = 0;
+    initLevel();
 }
 
 // ==========================================
@@ -416,7 +439,7 @@ function update() {
     ghosts.forEach(g => {
         let ghostSpeed = currentLevelIndex >= 2 ? 4 : 2; 
         
-        // CORRECTION : trolly accélère au lieu de ralentir s'il a peur !
+        // Trolly accélère au lieu de ralentir s'il a peur !
         if (frightenedTimer > 0) {
             if (g.type === "troll") {
                 ghostSpeed = 4; // Accélère
@@ -458,10 +481,9 @@ function update() {
         // Collisions
         let distance = Math.hypot((g.x + tileSize/2) - (pacman.x + tileSize/2), (g.y + tileSize/2) - (pacman.y + tileSize/2));
         if (distance < tileSize * 0.7) {
-            // CORRECTION : Méta-Fantôme trolly est impossible à manger même en peur !
+            // Trolly reste mortel même en peur
             if (frightenedTimer > 0 && g.type !== "boss" && g.type !== "troll") {
                 score += 200;
-                // Position Spawn Fantômes
                 g.x = 12 * tileSize;
                 g.y = 11 * tileSize;
                 updateUI();
@@ -470,9 +492,9 @@ function update() {
                 updateUI();
                 if (lives <= 0) {
                     gameOver = true;
-                    triggerScreamer(); // Déclenche le screamer sur le Game Over final
+                    triggerScreamer(); 
                 } else {
-                    initLevel(); // Recommence le niveau sur mort
+                    initLevel(); 
                 }
             }
         }
@@ -517,11 +539,9 @@ function drawGhosts() {
         ctx.beginPath();
         ctx.arc(g.x + tileSize / 2, g.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
         
-        // CORRECTION : trolly (type troll) accélère et reste mortel au lieu de clignoter bleu !
         if (frightenedTimer > 0) {
             if (g.type === "troll") {
-                // Trolly reste vert pétant et dangereux !
-                ctx.fillStyle = "#FF0000"; // Devient ROUGE SANG (Couleur Boss Crimson)
+                ctx.fillStyle = "#FF0000"; // Trolly devient rouge sang
             } else if (g.type !== "boss") {
                 if (frightenedTimer < 2000 && Math.floor(frightenedTimer / 150) % 2 === 0) {
                     ctx.fillStyle = "white"; 
@@ -529,7 +549,7 @@ function drawGhosts() {
                     ctx.fillStyle = "blue";
                 }
             } else {
-                ctx.fillStyle = g.color; // Boss reste orange
+                ctx.fillStyle = g.color; 
             }
         } else {
             ctx.fillStyle = g.color;
@@ -557,20 +577,16 @@ function drawMap() {
         for (let c = 0; c < currentMap[r].length; c++) {
             let item = currentMap[r][c];
             if (item === 1) {
-                // STYLE TEXTURE : Bloc bleu brillant d'origine
                 ctx.fillStyle = "#0000FF";
                 ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
             } else if (item === 0) {
-                // STYLE GOMME : Petits cercles roses discrets originaux
-                ctx.fillStyle = "#FFC0CB"; // Pink
+                ctx.fillStyle = "#FFC0CB"; 
                 ctx.beginPath();
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 2.5, 0, 2 * Math.PI);
                 ctx.fill();
             } else if (item === 3) {
-                // STYLE SUPER GOMME : Gros cercles blancs originaux (Pulsation pour le hardcore)
-                ctx.fillStyle = "#FFFFFF"; // White
+                ctx.fillStyle = "#FFFFFF"; 
                 ctx.beginPath();
-                // Vibration hardcore
                 let pulse = Math.sin(animationFrame * 0.2) * 1.5;
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6 + pulse, 0, 2 * Math.PI);
                 ctx.fill();
