@@ -1,4 +1,4 @@
-// ==========================================
+// ==========================================// ==========================================
 // CONFIGURATION GLOBALE ET VARIABLES DU JEU
 // ==========================================
 const canvas = document.getElementById("gameCanvas");
@@ -22,6 +22,10 @@ let totalDots = 0;
 let frightenedTimer = 0;
 let frightenedDuration = 8000; 
 
+// Animation de la bouche de Pac-Man
+let mouthAngle = 0.2;
+let mouthSpeed = 0.02;
+
 // Définition de Pac-Man
 let pacman = {
     x: 0,
@@ -44,7 +48,7 @@ let ghosts = [
 ];
 
 // ==========================================
-// LES 5 NIVEAUX DU JEU (MATRICES REPRÉSENTÉES EN ENTIER)
+// LES 5 NIVEAUX DU JEU (MATRICES 25x30)
 // ==========================================
 
 const map1 = [
@@ -352,6 +356,14 @@ function update() {
 
     if (frightenedTimer > 0) frightenedTimer -= 16.66; 
 
+    // Animation bouche
+    if (pacman.dx !== 0 || pacman.dy !== 0) {
+        mouthAngle += mouthSpeed;
+        if (mouthAngle > 0.4 || mouthAngle < 0.05) {
+            mouthSpeed = -mouthSpeed;
+        }
+    }
+
     if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
         if (pacman.x % tileSize === 0 && pacman.y % tileSize === 0) {
             if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
@@ -460,35 +472,72 @@ function update() {
 }
 
 // ==========================================
-// RENDU GRAPHIQUE RESTAURÉ (TEXTURING SIMPLE ET STATIQUE)
+// RENDU GRAPHIQUE ORIGINAL RESTAURÉ
 // ==========================================
 
 function drawPacman() {
+    ctx.save();
+    ctx.translate(pacman.x + tileSize / 2, pacman.y + tileSize / 2);
+    
+    // Rotation en fonction de la direction
+    if (pacman.dx > 0) ctx.rotate(0);
+    else if (pacman.dx < 0) ctx.rotate(Math.PI);
+    else if (pacman.dy > 0) ctx.rotate(Math.PI / 2);
+    else if (pacman.dy < 0) ctx.rotate(-Math.PI / 2);
+
     ctx.beginPath();
-    ctx.arc(pacman.x + tileSize / 2, pacman.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
+    // Dessin en forme de camembert (bouche animée)
+    ctx.arc(0, 0, (tileSize / 2) - 1, mouthAngle * Math.PI, (2 - mouthAngle) * Math.PI);
+    ctx.lineTo(0, 0);
     ctx.fillStyle = "yellow";
     ctx.fill();
     ctx.closePath();
+    ctx.restore();
 }
 
 function drawGhosts() {
     ghosts.forEach(g => {
+        let x = g.x;
+        let y = g.y;
+        let r = (tileSize / 2) - 1;
+
         ctx.beginPath();
-        ctx.arc(g.x + tileSize / 2, g.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
-        
+        // Choix de la couleur selon l'état de vulnérabilité
         if (frightenedTimer > 0) {
-            if (g.type === "troll") {
-                ctx.fillStyle = "#FF0000"; 
-            } else if (g.type !== "boss") {
-                ctx.fillStyle = "blue"; 
-            } else {
-                ctx.fillStyle = g.color; 
-            }
+            if (g.type === "troll") ctx.fillStyle = "#FF0000"; 
+            else if (g.type !== "boss") ctx.fillStyle = "blue"; 
+            else ctx.fillStyle = g.color; 
         } else {
             ctx.fillStyle = g.color;
         }
-        ctx.fill();
+
+        // Tête bombée et corps du fantôme classique
+        ctx.arc(x + tileSize / 2, y + tileSize / 2, r, Math.PI, 0, false);
+        ctx.lineTo(x + tileSize - 1, y + tileSize);
+        // Vagues en bas du drap
+        ctx.lineTo(x + tileSize - 1 - (r/2), y + tileSize - 3);
+        ctx.lineTo(x + tileSize - 1 - r, y + tileSize);
+        ctx.lineTo(x + r, y + tileSize - 3);
+        ctx.lineTo(x + 1, y + tileSize);
         ctx.closePath();
+        ctx.fill();
+
+        // Yeux blancs (toujours visibles, regardent vers leur axe dx/dy)
+        let eyeOffsetDx = g.dx > 0 ? 1 : g.dx < 0 ? -1 : 0;
+        let eyeOffsetDy = g.dy > 0 ? 1 : g.dy < 0 ? -1 : 0;
+
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(x + 6 + eyeOffsetDx, y + 7 + eyeOffsetDy, 3, 0, 2 * Math.PI);
+        ctx.arc(x + 14 + eyeOffsetDx, y + 7 + eyeOffsetDy, 3, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Pupilles bleues ou noires
+        ctx.fillStyle = frightenedTimer > 0 && g.type !== "boss" ? "orange" : "blue";
+        ctx.beginPath();
+        ctx.arc(x + 6 + eyeOffsetDx * 1.5, y + 7 + eyeOffsetDy * 1.5, 1.5, 0, 2 * Math.PI);
+        ctx.arc(x + 14 + eyeOffsetDx * 1.5, y + 7 + eyeOffsetDy * 1.5, 1.5, 0, 2 * Math.PI);
+        ctx.fill();
     });
 }
 
@@ -497,15 +546,21 @@ function drawMap() {
         for (let c = 0; c < currentMap[r].length; c++) {
             let item = currentMap[r][c];
             if (item === 1) {
-                ctx.fillStyle = "#0000FF";
+                // Style rétro : Murs bleus foncés avec bordures/doublures plus claires
+                ctx.fillStyle = "#0d0d8a";
                 ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+                ctx.strokeStyle = "#1919b3";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(c * tileSize + 2, r * tileSize + 2, tileSize - 4, tileSize - 4);
             } else if (item === 0) {
-                ctx.fillStyle = "#FFC0CB"; 
+                // Billes standards d'origine (jaune/rose pastel)
+                ctx.fillStyle = "#ffb8ae"; 
                 ctx.beginPath();
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 2.5, 0, 2 * Math.PI);
                 ctx.fill();
             } else if (item === 3) {
-                ctx.fillStyle = "#FFFFFF"; 
+                // Super-billes clignotantes blanches
+                ctx.fillStyle = "white"; 
                 ctx.beginPath();
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6, 0, 2 * Math.PI);
                 ctx.fill();
