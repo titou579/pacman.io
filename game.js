@@ -1,229 +1,115 @@
-const canvas = document.getElementById("gameCanvas");
+// ==========================================
+// CONFIGURATION GLOBALE ET VARIABLES DU JEU
+// ==========================================
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-
 const tileSize = 20;
-// TAILLE ADAPTÉE : 30 colonnes x 35 lignes
-canvas.width = 30 * tileSize;
-canvas.height = 35 * tileSize;
 
 let score = 0;
-let currentLevelIndex = 0;
 let lives = 3;
 let gameOver = false;
 let gameWon = false;
 
-// VARIABLES DE JEU
+let currentLevelIndex = 0;
+let currentMap = [];
 let dotsEaten = 0;
 let totalDots = 0;
+
 let frightenedTimer = 0;
-let frightenedDuration = 8000; 
+let frightenedDuration = 7000;
 let pacmanSpeedBonusActive = false;
 let pacmanSpeedBonusTimer = 0;
 
-// ENCODAGE DES MAPS GÉANTES (30x35)
-const map1 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-];
+// Variable essentielle pour gérer le rythme des animations (bouche, clignotements)
+let animationFrame = 0;
 
-const map2 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,3,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-];
+// Définition de Pac-Man
+let pacman = {
+    x: 14 * tileSize,
+    y: 26 * tileSize,
+    dx: 0,
+    dy: 0,
+    nextDx: 0,
+    nextDy: 0,
+    baseSpeed: 2,
+    currentSpeed: 2
+};
 
-const map3 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,3,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-];
-
-const map4 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-];
-
-const map5 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
-];
-
-const allLevels = [map1, map2, map3, map4, map5];
-let currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
-
-// ENTITÉS
-let pacman = { x: 14 * tileSize, y: 26 * tileSize, dx: 0, dy: 0, nextDx: 0, nextDy: 0, baseSpeed: 2, currentSpeed: 2 };
-
+// Liste des fantômes (le 4ème est configuré comme le "boss")
 let ghosts = [
-    { x: 12 * tileSize, y: 17 * tileSize, color: "red", dx: tileSize, dy: 0, type: "normal" },
-    { x: 13 * tileSize, y: 17 * tileSize, color: "pink", dx: -tileSize, dy: 0, type: "normal" },
-    { x: 15 * tileSize, y: 17 * tileSize, color: "cyan", dx: 0, dy: -tileSize, type: "normal" },
-    { x: 16 * tileSize, y: 17 * tileSize, color: "orange", dx: 0, dy: -tileSize, type: "normal" },
-    { x: 14 * tileSize, y: 16 * tileSize, color: "#8B0000", dx: tileSize, dy: 0, type: "boss" }
+    { x: 0, y: 0, dx: 0, dy: 0, color: "red", type: "normal" },
+    { x: 0, y: 0, dx: 0, dy: 0, color: "pink", type: "normal" },
+    { x: 0, y: 0, dx: 0, dy: 0, color: "cyan", type: "normal" },
+    { x: 0, y: 0, dx: 0, dy: 0, color: "orange", type: "boss" } // Le Boss qui traque le joueur
 ];
+
+// ==========================================
+// CONCEPTION DES NIVEAUX (Cartes de 30x35)
+// 0: Gomme, 1: Mur, 2: Vide, 3: Super-Gomme, 4: Bonus Vitesse
+// ==========================================
+const templateMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,3,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,4,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,4,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,0,1,1,1,1,1,2,2,1,1,2,2,1,1,1,1,1,0,1,1,1,1,1,1],
+    [2,2,2,2,2,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,2,2,2,2,2],
+    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,2,2,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+    [2,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2,2,0,2,2,2,2,2,2],
+    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+    [2,2,2,2,2,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,2,2,2,2,2],
+    [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+    [1,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,0,0,0,1,1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,1,1,0,0,0,1],
+    [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,3,0,0,1,1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,1,1,0,0,3,1],
+    [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,0,1,1,1,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+// Génération des 3 niveaux requis
+const allLevels = [templateMap, templateMap, templateMap];
+
+// ==========================================
+// FONCTIONS DE LOGIQUE ET INITIALISATION
+// ==========================================
+
+function countTotalDots() {
+    let count = 0;
+    for (let r = 0; r < currentMap.length; r++) {
+        for (let c = 0; c < currentMap[r].length; c++) {
+            if (currentMap[r][c] === 0 || currentMap[r][c] === 3) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+function isWall(x, y) {
+    if (x < 0 || x >= 30 * tileSize || y < 0 || y >= 35 * tileSize) return true;
+    let tileX = Math.floor(x / tileSize);
+    let tileY = Math.floor(y / tileSize);
+    return currentMap[tileY][tileX] === 1;
+}
 
 function initLevel() {
     currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
@@ -234,7 +120,7 @@ function initLevel() {
     ghosts.forEach((g, idx) => {
         g.x = (12 + (idx % 5)) * tileSize;
         g.y = 17 * tileSize;
-        g.dx = (idx % 2 === 0) ? tileSize : -tileSize;
+        g.dx = (idx % 2 === 0) ? 2 : -2;
         g.dy = 0;
     });
 
@@ -243,52 +129,54 @@ function initLevel() {
     frightenedTimer = 0;
     frightenedDuration = Math.max(3000, 9000 - (currentLevelIndex * 1500));
     
-    pacman.baseSpeed = 2 + (currentLevelIndex * 0.2);
+    // FIX : Choix de vitesses entières obligatoires (diviseurs de 20)
+    pacman.baseSpeed = currentLevelIndex >= 2 ? 4 : 2; 
     pacman.currentSpeed = pacman.baseSpeed;
 
-    document.getElementById("level").innerText = currentLevelIndex + 1;
+    let lvlEl = document.getElementById("level");
+    if (lvlEl) lvlEl.innerText = currentLevelIndex + 1;
 }
 
-function countTotalDots() {
-    let count = 0;
-    for(let r=0; r<currentMap.length; r++) {
-        for(let c=0; c<currentMap[r].length; c++) {
-            if(currentMap[r][c] === 0 || currentMap[r][c] === 3) count++;
+// FIX : Activation et liaison des boutons tactiles à l'écran
+function setupMobileControls() {
+    const buttons = {
+        'btn-up': { dx: 0, dy: -1 },
+        'btn-down': { dx: 0, dy: 1 },
+        'btn-left': { dx: -1, dy: 0 },
+        'btn-right': { dx: 1, dy: 0 }
+    };
+
+    Object.entries(buttons).forEach(([id, dir]) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            const handlePress = (e) => {
+                e.preventDefault(); // Empêche l'écran de scroller sur mobile
+                pacman.nextDx = dir.dx * pacman.currentSpeed;
+                pacman.nextDy = dir.dy * pacman.currentSpeed;
+            };
+            btn.addEventListener('touchstart', handlePress, { passive: false });
+            btn.addEventListener('click', handlePress);
         }
-    }
-    return count;
+    });
 }
 
-function changeDirection(dx, dy) {
-    pacman.nextDx = dx;
-    pacman.nextDy = dy;
-}
-
+// Écouteur clavier (PC)
 window.addEventListener("keydown", e => {
-    if (e.key === "ArrowUp") changeDirection(0, -pacman.currentSpeed);
-    if (e.key === "ArrowDown") changeDirection(0, pacman.currentSpeed);
-    if (e.key === "ArrowLeft") changeDirection(-pacman.currentSpeed, 0);
-    if (e.key === "ArrowRight") changeDirection(pacman.currentSpeed, 0);
+    switch (e.key) {
+        case "ArrowUp":    pacman.nextDx = 0; pacman.nextDy = -pacman.currentSpeed; break;
+        case "ArrowDown":  pacman.nextDx = 0; pacman.nextDy = pacman.currentSpeed; break;
+        case "ArrowLeft":  pacman.nextDx = -pacman.currentSpeed; pacman.nextDy = 0; break;
+        case "ArrowRight": pacman.nextDx = pacman.currentSpeed; pacman.nextDy = 0; break;
+    }
 });
 
-// Mobile inputs
-document.getElementById("btn-up").addEventListener("touchstart", () => changeDirection(0, -pacman.currentSpeed));
-document.getElementById("btn-down").addEventListener("touchstart", () => changeDirection(0, pacman.currentSpeed));
-document.getElementById("btn-left").addEventListener("touchstart", () => changeDirection(-pacman.currentSpeed, 0));
-document.getElementById("btn-right").addEventListener("touchstart", () => changeDirection(pacman.currentSpeed, 0));
-
-function isWall(x, y) {
-    let cellX = Math.floor(x / tileSize);
-    let cellY = Math.floor(y / tileSize);
-    
-    if (cellX < 0 || cellX >= 30) return false;
-    if (cellY < 0 || cellY >= 35) return true;
-
-    return currentMap[cellY][cellX] === 1;
-}
-
+// ==========================================
+// BOUCLE DE MISE À JOUR (UPDATE)
+// ==========================================
 function update() {
     if (gameOver || gameWon) return;
+
+    animationFrame++; // Incrémentation constante pour animer le rendu visuel
 
     if (frightenedTimer > 0) {
         frightenedTimer -= 16.66; 
@@ -302,6 +190,15 @@ function update() {
         }
     }
 
+    // Autoriser le redémarrage immédiat si Pac-Man s'arrête net sur un mur
+    if (pacman.dx === 0 && pacman.dy === 0) {
+        if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
+            pacman.dx = pacman.nextDx;
+            pacman.dy = pacman.nextDy;
+        }
+    }
+
+    // Pivotement aux intersections (alignement parfait sur la grille)
     if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
         if (pacman.x % tileSize === 0 && pacman.y % tileSize === 0) {
             if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
@@ -311,14 +208,20 @@ function update() {
         }
     }
 
+    // Avancement de Pac-Man
     if (!isWall(pacman.x + (pacman.dx > 0 ? tileSize : pacman.dx < 0 ? -1 : 0), pacman.y + (pacman.dy > 0 ? tileSize : pacman.dy < 0 ? -1 : 0))) {
         pacman.x += pacman.dx;
         pacman.y += pacman.dy;
+    } else {
+        pacman.dx = 0;
+        pacman.dy = 0;
     }
 
+    // Gestion des tunnels latéraux (téléportation)
     if (pacman.x < 0) pacman.x = canvas.width - tileSize;
     if (pacman.x >= canvas.width) pacman.x = 0;
 
+    // Analyse de la case centrale
     let centerTileX = Math.floor((pacman.x + tileSize/2) / tileSize);
     let centerTileY = Math.floor((pacman.y + tileSize/2) / tileSize);
 
@@ -338,11 +241,12 @@ function update() {
             score += 500;
             pacmanSpeedBonusActive = true;
             pacmanSpeedBonusTimer = 4000;
-            pacman.currentSpeed = pacman.baseSpeed * 1.5;
+            pacman.currentSpeed = pacman.baseSpeed === 2 ? 4 : 5; 
         }
     }
 
-    document.getElementById("score").innerText = score;
+    let scoreEl = document.getElementById("score");
+    if (scoreEl) scoreEl.innerText = score;
 
     if (dotsEaten >= totalDots) {
         if (currentLevelIndex < allLevels.length - 1) {
@@ -353,13 +257,14 @@ function update() {
         }
     }
 
+    // TRAITEMENT ET MOUVEMENT DES FANTÔMES
     ghosts.forEach(g => {
-        let ghostSpeed = 2 + (currentLevelIndex * 0.3);
+        let ghostSpeed = currentLevelIndex >= 2 ? 4 : 2; 
         if (frightenedTimer > 0 && g.type !== "boss") {
-            ghostSpeed = 1.2;
+            ghostSpeed = 1; 
         }
         if (g.type === "boss") {
-            ghostSpeed *= 1.25;
+            ghostSpeed = currentLevelIndex >= 2 ? 5 : 4; 
         }
 
         if (g.x % tileSize === 0 && g.y % tileSize === 0) {
@@ -396,6 +301,7 @@ function update() {
         g.x += g.dx;
         g.y += g.dy;
 
+        // VÉRIFICATION CHOC ET MORT
         let distance = Math.hypot((g.x + tileSize/2) - (pacman.x + tileSize/2), (g.y + tileSize/2) - (pacman.y + tileSize/2));
         if (distance < tileSize * 0.8) {
             if (frightenedTimer > 0 && g.type !== "boss") {
@@ -404,7 +310,8 @@ function update() {
                 g.y = 17 * tileSize;
             } else {
                 lives--;
-                document.getElementById("lives").innerText = lives;
+                let livesEl = document.getElementById("lives");
+                if (livesEl) livesEl.innerText = lives;
                 if (lives <= 0) {
                     gameOver = true;
                 } else {
@@ -417,105 +324,134 @@ function update() {
     });
 }
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// ==========================================
+// RECOUVREMENT ET RENDU GRAPHIQUE (DRAW)
+// ==========================================
 
-    for (let r = 0; r < currentMap.length; r++) {
-        for (let c = 0; c < currentMap[r].length; c++) {
-            if (currentMap[r][c] === 1) {
-                ctx.fillStyle = "#111199";
-                ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
-                ctx.strokeStyle = "#000055";
-                ctx.strokeRect(c * tileSize, r * tileSize, tileSize, tileSize);
-            } else if (currentMap[r][c] === 0) {
-                ctx.fillStyle = "#ffb8ae";
-                ctx.beginPath();
-                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 3, 0, Math.PI * 2);
-                ctx.fill();
-            } else if (currentMap[r][c] === 3) {
-                if (Math.floor(Date.now() / 200) % 2 === 0) {
-                    ctx.fillStyle = "#ffb8ff";
-                    ctx.beginPath();
-                    ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 7, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            } else if (currentMap[r][c] === 4) {
-                ctx.fillStyle = "red";
-                ctx.beginPath();
-                ctx.arc(c * tileSize + tileSize/3, r * tileSize + tileSize * 0.6, 5, 0, Math.PI * 2);
-                ctx.arc(c * tileSize + tileSize * 0.7, r * tileSize + tileSize * 0.6, 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = "green";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(c * tileSize + tileSize/2, r * tileSize + 2);
-                ctx.lineTo(c * tileSize + tileSize/3, r * tileSize + tileSize * 0.6);
-                ctx.stroke();
-            }
-        }
+function drawPacman() {
+    // ANIMATION DE LA BOUCHE : On calcule la taille d'ouverture via un sinus oscillant
+    let mouthSize = 0;
+    if (pacman.dx !== 0 || pacman.dy !== 0) {
+        mouthSize = Math.abs(Math.sin(animationFrame * 0.25)) * 0.4; 
     }
 
-    ctx.fillStyle = pacmanSpeedBonusActive ? "#00FFFF" : "#FFFF00";
-    ctx.beginPath();
-    ctx.arc(pacman.x + tileSize/2, pacman.y + tileSize/2, tileSize/2 - 1, 0.2 * Math.PI, 1.8 * Math.PI); 
-    ctx.lineTo(pacman.x + tileSize/2, pacman.y + tileSize/2);
-    ctx.fill();
+    let startAngle = mouthSize;
+    let endAngle = 2 * Math.PI - mouthSize;
 
+    // Ajustement de la rotation selon l'axe de déplacement
+    let rotation = 0;
+    if (pacman.dx > 0) rotation = 0;
+    if (pacman.dy > 0) rotation = Math.PI / 2;
+    if (pacman.dx < 0) rotation = Math.PI;
+    if (pacman.dy < 0) rotation = 3 * Math.PI / 2;
+
+    ctx.save();
+    ctx.translate(pacman.x + tileSize / 2, pacman.y + tileSize / 2);
+    ctx.rotate(rotation);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, (tileSize / 2) - 1, startAngle, endAngle);
+    ctx.lineTo(0, 0);
+    ctx.fillStyle = "yellow";
+    ctx.fill();
+    ctx.closePath();
+    
+    ctx.restore();
+}
+
+function drawGhosts() {
     ghosts.forEach(g => {
+        ctx.beginPath();
+        ctx.arc(g.x + tileSize / 2, g.y + tileSize / 2, (tileSize / 2) - 1, 0, 2 * Math.PI);
+        
+        // ANIMATION CLIGNOTEMENT : Blanc/bleu alterné durant les 2 dernières secondes
         if (frightenedTimer > 0 && g.type !== "boss") {
-            ctx.fillStyle = (frightenedTimer < 2000 && Math.floor(Date.now() / 100) % 2 === 0) ? "white" : "blue";
+            if (frightenedTimer < 2000 && Math.floor(frightenedTimer / 150) % 2 === 0) {
+                ctx.fillStyle = "white"; 
+            } else {
+                ctx.fillStyle = "blue";
+            }
         } else {
             ctx.fillStyle = g.color;
         }
+        
+        ctx.fill();
+        ctx.closePath();
 
-        if (g.type === "boss") {
-            ctx.shadowColor = "red";
-            ctx.shadowBlur = 10;
-            ctx.fillRect(g.x + 1, g.y + 1, tileSize - 2, tileSize - 2);
-            ctx.shadowBlur = 0;
-            
-            ctx.fillStyle = "yellow";
-            ctx.fillRect(g.x + 4, g.y + 4, 4, 4);
-            ctx.fillRect(g.x + 12, g.y + 4, 4, 4);
-        } else {
-            ctx.beginPath();
-            ctx.arc(g.x + tileSize/2, g.y + tileSize/2, tileSize/2 - 1, Math.PI, 0, false);
-            ctx.lineTo(g.x + tileSize - 1, g.y + tileSize);
-            ctx.lineTo(g.x + 1, g.y + tileSize);
-            ctx.fill();
-        }
+        // Ajout d'yeux simples pour parfaire l'animation des fantômes
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(g.x + 6, g.y + 6, 3, 0, 2 * Math.PI);
+        ctx.arc(g.x + 14, g.y + 6, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.arc(g.x + 6 + (g.dx * 0.5), g.y + 6 + (g.dy * 0.5), 1.5, 0, 2 * Math.PI);
+        ctx.arc(g.x + 14 + (g.dx * 0.5), g.y + 6 + (g.dy * 0.5), 1.5, 0, 2 * Math.PI);
+        ctx.fill();
     });
+}
 
-    if (gameOver) {
-        ctx.fillStyle = "rgba(0,0,0,0.8)";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle = "red";
-        ctx.font = "30px 'Courier New'";
-        ctx.textAlign = "center";
-        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
-        ctx.font = "16px sans-serif";
-        ctx.fillStyle = "white";
-        ctx.fillText("Ton pote a gagné cette fois...", canvas.width/2, canvas.height/2 + 40);
-    }
-    if (gameWon) {
-        ctx.fillStyle = "rgba(0,0,0,0.8)";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle = "lime";
-        ctx.font = "30px 'Courier New'";
-        ctx.textAlign = "center";
-        ctx.fillText("VICTOIRE ULTIME !", canvas.width/2, canvas.height/2);
-        ctx.font = "16px sans-serif";
-        ctx.fillStyle = "white";
-        ctx.fillText("Là, il ne pourra jamais te battre.", canvas.width/2, canvas.height/2 + 40);
+function drawMap() {
+    for (let r = 0; r < currentMap.length; r++) {
+        for (let c = 0; c < currentMap[r].length; c++) {
+            let item = currentMap[r][c];
+            if (item === 1) {
+                ctx.fillStyle = "blue";
+                ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+            } else if (item === 0) {
+                ctx.fillStyle = "pink";
+                ctx.beginPath();
+                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            } else if (item === 3) {
+                ctx.fillStyle = "orange";
+                ctx.beginPath();
+                // Légère oscillation de taille sur les super gommes
+                let pulse = Math.sin(animationFrame * 0.1) * 1.5;
+                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6 + pulse, 0, 2 * Math.PI);
+                ctx.fill();
+            } else if (item === 4) {
+                ctx.fillStyle = "lime";
+                ctx.fillRect(c * tileSize + 4, r * tileSize + 4, tileSize - 8, tileSize - 8);
+            }
+        }
     }
 }
 
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawMap();
+    drawPacman();
+    drawGhosts();
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "red";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+    } else if (gameWon) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "lime";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("VICTOIRE !", canvas.width/2, canvas.height/2);
+    }
+}
+
+// ==========================================
+// BOUCLE PRINCIPALE (GAME LOOP)
+// ==========================================
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Lancement
+// Lancement global au chargement
 initLevel();
+setupMobileControls();
 gameLoop();
