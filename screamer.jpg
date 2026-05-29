@@ -1,0 +1,67 @@
+<!-- ========================================== -->
+<!-- STRUCTURE POUR LE SCREAMER (JUMP SCARE)    -->
+<!-- ========================================== -->
+<div id="screamer-overlay" style="
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: black; 
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+">
+    <!-- IMAGE DU SCREAMER GÉNÉRÉE DIRECTEMENT EN CODE VECTORIEL -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" style="max-width: 85%; max-height: 85%;">
+        <defs>
+            <!-- Effet de lueur rouge pour les yeux -->
+            <radialGradient id="eye-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff0000" />
+                <stop offset="40%" stop-color="#b30000" />
+                <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+            </radialGradient>
+        </defs>
+        
+        <!-- Silhouette du visage -->
+        <path d="M150,400 Q100,250 150,100 Q250,50 350,100 Q400,250 350,400 Q250,450 150,400 Z" fill="#0d0d0d" stroke="#260000" stroke-width="4"/>
+        
+        <!-- Œil Gauche -->
+        <circle cx="190" cy="180" r="45" fill="url(#eye-glow)" />
+        <path d="M160,160 Q190,190 220,170 Q190,150 160,160 Z" fill="#fff" />
+        <path d="M150,150 L225,180" stroke="#ff0000" stroke-width="8" stroke-linecap="round" /> 
+        <circle cx="195" cy="168" r="6" fill="#000" />
+        
+        <!-- Œil Droit -->
+        <circle cx="310" cy="180" r="45" fill="url(#eye-glow)" />
+        <path d="M280,170 Q310,190 340,160 Q310,150 280,170 Z" fill="#fff" />
+        <path d="M350,150 L275,180" stroke="#ff0000" stroke-width="8" stroke-linecap="round" /> 
+        <circle cx="305" cy="168" r="6" fill="#000" />
+        
+        <!-- Nez -->
+        <path d="M242,230 L245,238 M258,230 L255,238" stroke="#ff0000" stroke-width="4" stroke-linecap="round" />
+
+        <!-- Bouche béante -->
+        <path d="M130,280 Q250,460 370,280 Q250,310 130,280 Z" fill="#1a0000" stroke="#ff0000" stroke-width="3" />
+        
+        <!-- Dents du haut -->
+        <polygon points="140,283 155,310 170,285" fill="#eeeeee" />
+        <polygon points="170,285 190,325 210,287" fill="#eeeeee" />
+        <polygon points="210,287 250,345 290,287" fill="#eeeeee" /> <!-- Grand croc central -->
+        <polygon points="290,287 310,325 330,285" fill="#eeeeee" />
+        <polygon points="330,285 345,310 360,283" fill="#eeeeee" />
+        
+        <!-- Dents du bas -->
+        <polygon points="160,315 175,295 190,312" fill="#dddddd" />
+        <polygon points="200,330 225,298 250,330" fill="#dddddd" />
+        <polygon points="250,330 275,298 300,330" fill="#dddddd" />
+        <polygon points="310,315 325,295 340,312" fill="#dddddd" />
+        
+        <!-- Filet de sang qui coule de la bouche -->
+        <path d="M250,340 Q253,370 250,390" stroke="#ff0000" stroke-width="3" fill="none" stroke-linecap="round" />
+    </svg>
+    
+    <!-- Le son, lui, requiert toujours ton fichier scream.mp3 -->
+    <audio id="scream-sound" src="scream.mp3" preload="auto"></audio>
+</div>
