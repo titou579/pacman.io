@@ -1,4 +1,4 @@
-// ==========================================// ==========================================
+// ==========================================
 // CONFIGURATION GLOBALE ET VARIABLES DU JEU
 // ==========================================
 const canvas = document.getElementById("gameCanvas");
@@ -257,8 +257,8 @@ function getStartPos(map) {
     return { x: 12 * tileSize, y: 20 * tileSize };
 }
 
-function initLevel() {
-    currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
+// Nouvelle fonction dédiée pour repositionner les acteurs SANS recharger la carte
+function respawnActors() {
     let pos = getStartPos(currentMap);
     pacman.x = pos.x;
     pacman.y = pos.y;
@@ -271,13 +271,17 @@ function initLevel() {
         g.dy = 0;
     });
 
-    dotsEaten = 0;
-    totalDots = countTotalDots();
     frightenedTimer = 0;
-    
     pacman.baseSpeed = currentLevelIndex >= 2 ? 4 : 2; 
     pacman.currentSpeed = pacman.baseSpeed;
+}
 
+// Utilisé uniquement au tout début ou lors d'un changement de niveau complet
+function initLevel() {
+    currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
+    dotsEaten = 0;
+    totalDots = countTotalDots();
+    respawnActors();
     updateUI();
 }
 
@@ -464,7 +468,8 @@ function update() {
                     gameOver = true;
                     triggerScreamer(); 
                 } else {
-                    initLevel(); 
+                    // CORRECTION : On repositionne les acteurs au point de départ sans toucher à la map !
+                    respawnActors(); 
                 }
             }
         }
