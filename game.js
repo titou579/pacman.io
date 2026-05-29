@@ -1,359 +1,521 @@
-const canvas = document.getElementById('gameCanvas');
-// Grille exacte : 25 colonnes x 30 lignes (Tuiles de 20px)
-canvas.width = 500;
-canvas.height = 600;
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
 const tileSize = 20;
+// TAILLE ADAPTÉE : 30 colonnes x 35 lignes
+canvas.width = 30 * tileSize;
+canvas.height = 35 * tileSize;
 
-// --- LEGENDE DES MAPS ---
-// 1 = Mur (Bleu)
-// 0 = Petite Gomme (Rose)
-// 2 = Espace Vide / Zone de spawn / Tunnel
-// 3 = Super Gomme blanche (Rend le fantôme vulnérable)
+let score = 0;
+let currentLevelIndex = 0;
+let lives = 3;
+let gameOver = false;
+let gameWon = false;
 
+// VARIABLES DE JEU
+let dotsEaten = 0;
+let totalDots = 0;
+let frightenedTimer = 0;
+let frightenedDuration = 8000; 
+let pacmanSpeedBonusActive = false;
+let pacmanSpeedBonusTimer = 0;
+
+// ENCODAGE DES MAPS GÉANTES (30x35)
 const map1 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,3,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,3,1],
-    [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,1,1,0,0,0,0,0,0,0,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,1,1,1,2,1,1,1,0,0,0,0,0,0,0,0,1], // Porte de la cage au milieu (2)
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2], // Tunnel Gauche et Droite (2)
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2], 
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-    [1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1],
-    [1,3,1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,1,3,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]  // Ligne HUD pour l'affichage des vies
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1],
+    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 
 const map2 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,1,1,1,2,1,1,1,0,0,0,0,0,0,0,0,1],
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,1,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1],
+    [1,0,3,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 
 const map3 = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,0,1,1,1,2,1,1,1,0,0,1,0,1,0,1,0,1],
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [2,0,1,0,1,0,1,0,0,1,2,2,2,2,2,1,0,0,1,0,1,0,1,0,2],
-    [2,0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,2],
-    [1,0,1,0,1,0,1,0,0,1,1,1,1,1,1,1,0,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 
-const maps = [map1, map2, map3];
+const map4 = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+];
 
-// --- VARIABLES DE JEU ---
-let currentLevel = 0;
-let lives = 3;
-let score = 0;
-let map = JSON.parse(JSON.stringify(maps[currentLevel]));
+const map5 = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [2,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,2],
+    [1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+];
 
-// Positions d'apparition adaptées (Spawn de Pac-Man en haut à gauche et Fantôme au centre de la cage)
-let pacman = { x: 30, y: 30, size: 8, speed: 2, dx: 0, dy: 0, nextDx: 0, nextDy: 0, mouthOpen: 0, mouthDir: 1 };
-let ghost = { x: 250, y: 290, size: 8, speed: 2, dx: 2, dy: 0, color: 'red', isScared: false, scaredTimer: 0 };
+const allLevels = [map1, map2, map3, map4, map5];
+let currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
 
-// --- INTEGRATION BOUTONS MOBILES (EVITE LE DOUBLE-BOUTON) ---
-if (!document.getElementById('mobile-controls')) {
-    const touchContainer = document.createElement('div');
-    touchContainer.id = 'mobile-controls';
-    touchContainer.style.display = 'flex';
-    touchContainer.style.flexDirection = 'column';
-    touchContainer.style.alignItems = 'center';
-    touchContainer.style.marginTop = '15px';
-    touchContainer.innerHTML = `
-        <button id="btn-up" style="width:75px; height:55px; margin:4px; font-weight:bold; font-size:22px; background:#222; color:white; border:2px solid #1919A6; border-radius:10px; touch-action: manipulation;">▲</button>
-        <div style="display:flex;">
-            <button id="btn-left" style="width:75px; height:55px; margin:4px; font-weight:bold; font-size:22px; background:#222; color:white; border:2px solid #1919A6; border-radius:10px; touch-action: manipulation;">◀</button>
-            <button id="btn-down" style="width:75px; height:55px; margin:4px; font-weight:bold; font-size:22px; background:#222; color:white; border:2px solid #1919A6; border-radius:10px; touch-action: manipulation;">▼</button>
-            <button id="btn-right" style="width:75px; height:55px; margin:4px; font-weight:bold; font-size:22px; background:#222; color:white; border:2px solid #1919A6; border-radius:10px; touch-action: manipulation;">▶</button>
-        </div>
-    `;
-    canvas.parentNode.insertBefore(touchContainer, canvas.nextSibling);
+// ENTITÉS
+let pacman = { x: 14 * tileSize, y: 26 * tileSize, dx: 0, dy: 0, nextDx: 0, nextDy: 0, baseSpeed: 2, currentSpeed: 2 };
 
-    const setDir = (dx, dy) => { pacman.nextDx = dx; pacman.nextDy = dy; };
+let ghosts = [
+    { x: 12 * tileSize, y: 17 * tileSize, color: "red", dx: tileSize, dy: 0, type: "normal" },
+    { x: 13 * tileSize, y: 17 * tileSize, color: "pink", dx: -tileSize, dy: 0, type: "normal" },
+    { x: 15 * tileSize, y: 17 * tileSize, color: "cyan", dx: 0, dy: -tileSize, type: "normal" },
+    { x: 16 * tileSize, y: 17 * tileSize, color: "orange", dx: 0, dy: -tileSize, type: "normal" },
+    { x: 14 * tileSize, y: 16 * tileSize, color: "#8B0000", dx: tileSize, dy: 0, type: "boss" }
+];
+
+function initLevel() {
+    currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
+    pacman.x = 14 * tileSize;
+    pacman.y = 26 * tileSize;
+    pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
     
-    document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); setDir(0, -1); });
-    document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); setDir(0, 1); });
-    document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); setDir(-1, 0); });
-    document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); setDir(1, 0); });
+    ghosts.forEach((g, idx) => {
+        g.x = (12 + (idx % 5)) * tileSize;
+        g.y = 17 * tileSize;
+        g.dx = (idx % 2 === 0) ? tileSize : -tileSize;
+        g.dy = 0;
+    });
+
+    dotsEaten = 0;
+    totalDots = countTotalDots();
+    frightenedTimer = 0;
+    frightenedDuration = Math.max(3000, 9000 - (currentLevelIndex * 1500));
     
-    document.getElementById('btn-up').addEventListener('click', () => setDir(0, -1));
-    document.getElementById('btn-down').addEventListener('click', () => setDir(0, 1));
-    document.getElementById('btn-left').addEventListener('click', () => setDir(-1, 0));
-    document.getElementById('btn-right').addEventListener('click', () => setDir(1, 0));
+    pacman.baseSpeed = 2 + (currentLevelIndex * 0.2);
+    pacman.currentSpeed = pacman.baseSpeed;
+
+    document.getElementById("level").innerText = currentLevelIndex + 1;
 }
 
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'z') { pacman.nextDx = 0; pacman.nextDy = -1; }
-    if (e.key === 'ArrowDown' || e.key === 's') { pacman.nextDx = 0; pacman.nextDy = 1; }
-    if (e.key === 'ArrowLeft' || e.key === 'q') { pacman.nextDx = -1; pacman.nextDy = 0; }
-    if (e.key === 'ArrowRight' || e.key === 'd') { pacman.nextDx = 1; pacman.nextDy = 0; }
+function countTotalDots() {
+    let count = 0;
+    for(let r=0; r<currentMap.length; r++) {
+        for(let c=0; c<currentMap[r].length; c++) {
+            if(currentMap[r][c] === 0 || currentMap[r][c] === 3) count++;
+        }
+    }
+    return count;
+}
+
+function changeDirection(dx, dy) {
+    pacman.nextDx = dx;
+    pacman.nextDy = dy;
+}
+
+window.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") changeDirection(0, -pacman.currentSpeed);
+    if (e.key === "ArrowDown") changeDirection(0, pacman.currentSpeed);
+    if (e.key === "ArrowLeft") changeDirection(-pacman.currentSpeed, 0);
+    if (e.key === "ArrowRight") changeDirection(pacman.currentSpeed, 0);
 });
 
-// --- ENGINE & VERIFICATIONS ETANCHEITE DU TUNNEL ---
-function canMove(x, y, size) {
-    const margin = 2; 
-    const left = Math.floor((x - size + margin) / tileSize);
-    const right = Math.floor((x + size - margin) / tileSize);
-    const top = Math.floor((y - size + margin) / tileSize);
-    const bottom = Math.floor((y + size - margin) / tileSize);
+// Mobile inputs
+document.getElementById("btn-up").addEventListener("touchstart", () => changeDirection(0, -pacman.currentSpeed));
+document.getElementById("btn-down").addEventListener("touchstart", () => changeDirection(0, pacman.currentSpeed));
+document.getElementById("btn-left").addEventListener("touchstart", () => changeDirection(-pacman.currentSpeed, 0));
+document.getElementById("btn-right").addEventListener("touchstart", () => changeDirection(pacman.currentSpeed, 0));
 
-    // Sécurisation stricte des sorties latérales : Uniquement tolérées sur les lignes du tunnel central (13 à 15)
-    if (x < 0 || x > canvas.width) {
-        const gridY = Math.floor(y / tileSize);
-        if (gridY >= 13 && gridY <= 15) return true; 
-        return false; 
-    }
-
-    if (!map[top] || map[top][left] === 1 || map[top][right] === 1 || 
-        !map[bottom] || map[bottom][left] === 1 || map[bottom][right] === 1) {
-        return false;
-    }
-    return true;
-}
-
-function resetPositions() {
-    pacman.x = 30; pacman.y = 30; pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
-    ghost.x = 250; ghost.y = 290; ghost.dx = 2; ghost.dy = 0; ghost.isScared = false; ghost.scaredTimer = 0;
-}
-
-function checkLevelComplete() {
-    let dotsLeft = false;
-    for (let row = 0; row < map.length; row++) {
-        if (map[row].includes(0) || map[row].includes(3)) {
-            dotsLeft = true;
-            break;
-        }
-    }
-
-    if (!dotsLeft) {
-        currentLevel++;
-        if (currentLevel >= maps.length) {
-            alert("🏆 MAGNIFIQUE ! TU AS SURVÉCU À TOUTES LES MAPS ! Recommençons.");
-            currentLevel = 0; score = 0;
-        } else {
-            alert(`Niveau ${currentLevel + 1} ! Vos Vies se régénèrent à 100% ! ❤️`);
-        }
-        lives = 3; // Récupère toute sa vie
-        map = JSON.parse(JSON.stringify(maps[currentLevel]));
-        ghost.speed = 2 + (currentLevel * 0.4); // Léger boost de vitesse par niveau
-        resetPositions();
-    }
-}
-
-function getGhostMove() {
-    let possibleMoves = [{dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1}];
-    possibleMoves = possibleMoves.filter(m => !(m.dx === -ghost.dx && m.dy === -ghost.dy));
-    let validMoves = possibleMoves.filter(m => canMove(ghost.x + m.dx * tileSize, ghost.y + m.dy * tileSize, ghost.size));
+function isWall(x, y) {
+    let cellX = Math.floor(x / tileSize);
+    let cellY = Math.floor(y / tileSize);
     
-    if (validMoves.length === 0) return {dx: -ghost.dx, dy: -ghost.dy};
+    if (cellX < 0 || cellX >= 30) return false;
+    if (cellY < 0 || cellY >= 35) return true;
 
-    let bestMove = validMoves[0];
-    let bestDistance = ghost.isScared ? -1 : Infinity;
-
-    validMoves.forEach(move => {
-        let testX = ghost.x + (move.dx * tileSize);
-        let testY = ghost.y + (move.dy * tileSize);
-        let distance = Math.sqrt(Math.pow(testX - pacman.x, 2) + Math.pow(testY - pacman.y, 2));
-        
-        if (ghost.isScared) {
-            if (distance > bestDistance) { bestDistance = distance; bestMove = move; }
-        } else {
-            if (distance < bestDistance) { bestDistance = distance; bestMove = move; }
-        }
-    });
-    return bestMove;
+    return currentMap[cellY][cellX] === 1;
 }
 
 function update() {
-    // Déplacement fluide de Pac-Man
+    if (gameOver || gameWon) return;
+
+    if (frightenedTimer > 0) {
+        frightenedTimer -= 16.66; 
+    }
+
+    if (pacmanSpeedBonusActive) {
+        pacmanSpeedBonusTimer -= 16.66;
+        if (pacmanSpeedBonusTimer <= 0) {
+            pacmanSpeedBonusActive = false;
+            pacman.currentSpeed = pacman.baseSpeed;
+        }
+    }
+
     if (pacman.nextDx !== 0 || pacman.nextDy !== 0) {
-        if (canMove(pacman.x + pacman.nextDx * pacman.speed, pacman.y + pacman.nextDy * pacman.speed, pacman.size)) {
-            pacman.dx = pacman.nextDx; pacman.dy = pacman.nextDy;
-            pacman.nextDx = 0; pacman.nextDy = 0;
+        if (pacman.x % tileSize === 0 && pacman.y % tileSize === 0) {
+            if (!isWall(pacman.x + (pacman.nextDx > 0 ? tileSize : pacman.nextDx < 0 ? -1 : 0), pacman.y + (pacman.nextDy > 0 ? tileSize : pacman.nextDy < 0 ? -1 : 0))) {
+                pacman.dx = pacman.nextDx;
+                pacman.dy = pacman.nextDy;
+            }
         }
     }
-    if (canMove(pacman.x + pacman.dx * pacman.speed, pacman.y + pacman.dy * pacman.speed, pacman.size)) {
-        pacman.x += pacman.dx * pacman.speed; pacman.y += pacman.dy * pacman.speed;
+
+    if (!isWall(pacman.x + (pacman.dx > 0 ? tileSize : pacman.dx < 0 ? -1 : 0), pacman.y + (pacman.dy > 0 ? tileSize : pacman.dy < 0 ? -1 : 0))) {
+        pacman.x += pacman.dx;
+        pacman.y += pacman.dy;
     }
 
-    // Gestion du Wrap-around des Tunnels
-    if (pacman.x < -5) pacman.x = canvas.width + 5;
-    if (pacman.x > canvas.width + 5) pacman.x = -5;
+    if (pacman.x < 0) pacman.x = canvas.width - tileSize;
+    if (pacman.x >= canvas.width) pacman.x = 0;
 
-    // Détection des gommes mangées
-    let gridX = Math.floor(pacman.x / tileSize);
-    let gridY = Math.floor(pacman.y / tileSize);
-    if (map[gridY] && map[gridY][gridX] === 0) {
-        map[gridY][gridX] = 2; score += 10;
-        checkLevelComplete();
-    } else if (map[gridY] && map[gridY][gridX] === 3) {
-        map[gridY][gridX] = 2; score += 50;
-        ghost.isScared = true; ghost.scaredTimer = 350;
-        checkLevelComplete();
+    let centerTileX = Math.floor((pacman.x + tileSize/2) / tileSize);
+    let centerTileY = Math.floor((pacman.y + tileSize/2) / tileSize);
+
+    if (centerTileX >= 0 && centerTileX < 30 && centerTileY >= 0 && centerTileY < 35) {
+        let item = currentMap[centerTileY][centerTileX];
+        if (item === 0) {
+            currentMap[centerTileY][centerTileX] = 2;
+            score += 10;
+            dotsEaten++;
+        } else if (item === 3) {
+            currentMap[centerTileY][centerTileX] = 2;
+            score += 50;
+            dotsEaten++;
+            frightenedTimer = frightenedDuration;
+        } else if (item === 4) {
+            currentMap[centerTileY][centerTileX] = 2;
+            score += 500;
+            pacmanSpeedBonusActive = true;
+            pacmanSpeedBonusTimer = 4000;
+            pacman.currentSpeed = pacman.baseSpeed * 1.5;
+        }
     }
 
-    // Déplacement fluide du Fantôme
-    let currentGhostSpeed = ghost.isScared ? ghost.speed * 0.5 : ghost.speed;
+    document.getElementById("score").innerText = score;
 
-    if (Math.abs((ghost.x - 10) % tileSize) < currentGhostSpeed && Math.abs((ghost.y - 10) % tileSize) < currentGhostSpeed) {
-        ghost.x = Math.round((ghost.x - 10) / tileSize) * tileSize + 10;
-        ghost.y = Math.round((ghost.y - 10) / tileSize) * tileSize + 10;
-        
-        let newMove = getGhostMove();
-        ghost.dx = newMove.dx; ghost.dy = newMove.dy;
-    }
-
-    if (canMove(ghost.x + ghost.dx * currentGhostSpeed, ghost.y + ghost.dy * currentGhostSpeed, ghost.size)) {
-        ghost.x += ghost.dx * currentGhostSpeed; ghost.y += ghost.dy * currentGhostSpeed;
-    }
-
-    if (ghost.x < -5) ghost.x = canvas.width + 5;
-    if (ghost.x > canvas.width + 5) ghost.x = -5;
-
-    if (ghost.isScared) {
-        ghost.scaredTimer--;
-        if (ghost.scaredTimer <= 0) ghost.isScared = false;
-    }
-
-    // Collisions avec le fantôme
-    let distToGhost = Math.sqrt(Math.pow(ghost.x - pacman.x, 2) + Math.pow(ghost.y - pacman.y, 2));
-    if (distToGhost < 14) {
-        if (ghost.isScared) {
-            score += 200; resetPositions();
+    if (dotsEaten >= totalDots) {
+        if (currentLevelIndex < allLevels.length - 1) {
+            currentLevelIndex++;
+            initLevel();
         } else {
-            lives--;
-            if (lives <= 0) {
-                alert("❌ GAME OVER... Score final : " + score);
-                currentLevel = 0; lives = 3; score = 0;
-                map = JSON.parse(JSON.stringify(maps[currentLevel]));
-                ghost.speed = 2;
+            gameWon = true;
+        }
+    }
+
+    ghosts.forEach(g => {
+        let ghostSpeed = 2 + (currentLevelIndex * 0.3);
+        if (frightenedTimer > 0 && g.type !== "boss") {
+            ghostSpeed = 1.2;
+        }
+        if (g.type === "boss") {
+            ghostSpeed *= 1.25;
+        }
+
+        if (g.x % tileSize === 0 && g.y % tileSize === 0) {
+            let possibleDirs = [];
+            let dirs = [{x: ghostSpeed, y:0}, {x: -ghostSpeed, y:0}, {x:0, y: ghostSpeed}, {x:0, y: -ghostSpeed}];
+            
+            dirs.forEach(d => {
+                if (!isWall(g.x + (d.x > 0 ? tileSize : d.x < 0 ? -1 : 0), g.y + (d.y > 0 ? tileSize : d.y < 0 ? -1 : 0))) {
+                    if (!(d.x === -g.dx && d.y === -g.dy)) {
+                        possibleDirs.push(d);
+                    }
+                }
+            });
+
+            if (possibleDirs.length === 0) {
+                possibleDirs.push({x: -g.dx, y: -g.dy});
+            }
+
+            if (g.type === "boss" && Math.random() < 0.7 && possibleDirs.length > 0) {
+                possibleDirs.sort((a, b) => {
+                    let distA = Math.hypot((g.x + a.x) - pacman.x, (g.y + a.y) - pacman.y);
+                    let distB = Math.hypot((g.x + b.x) - pacman.x, (g.y + b.y) - pacman.y);
+                    return distA - distB;
+                });
+                g.dx = possibleDirs[0].x;
+                g.dy = possibleDirs[0].y;
             } else {
-                alert("Ouch ! Vies restantes : " + lives);
-            }
-            resetPositions();
-        }
-    }
-
-    // --- LOGIQUE DE DESSIN ---
-    ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (let row = 0; row < map.length; row++) {
-        for (let col = 0; col < map[row].length; col++) {
-            if (map[row][col] === 1) {
-                ctx.fillStyle = '#1919A6'; ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
-            } else if (map[row][col] === 0) {
-                ctx.fillStyle = '#ffb8ae'; ctx.beginPath(); ctx.arc(col * tileSize + 10, row * tileSize + 10, 2.5, 0, Math.PI * 2); ctx.fill();
-            } else if (map[row][col] === 3) {
-                ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(col * tileSize + 10, row * tileSize + 10, 5.5, 0, Math.PI * 2); ctx.fill();
+                let finalDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                g.dx = finalDir.x;
+                g.dy = finalDir.y;
             }
         }
-    }
 
-    // Affichage des scores
-    ctx.fillStyle = 'white'; ctx.font = 'bold 14px Arial';
-    ctx.fillText("SCORE: " + score, 15, 22);
-    ctx.fillText("NIVEAU: " + (currentLevel + 1), 400, 22);
+        g.x += g.dx;
+        g.y += g.dy;
 
-    // Affichage graphique des vies tout en bas
-    for (let i = 0; i < lives; i++) {
-        ctx.fillStyle = 'yellow'; ctx.beginPath();
-        ctx.arc(25 + i * 22, canvas.height - 18, 7, 0.2 * Math.PI, 1.8 * Math.PI);
-        ctx.lineTo(25 + i * 22, canvas.height - 18); ctx.fill();
-    }
-
-    // Dessin Pac-Man
-    ctx.save(); ctx.translate(pacman.x, pacman.y);
-    if (pacman.dx === 1) ctx.rotate(0);
-    else if (pacman.dx === -1) ctx.rotate(Math.PI);
-    else if (pacman.dy === 1) ctx.rotate(Math.PI / 2);
-    else if (pacman.dy === -1) ctx.rotate(-Math.PI / 2);
-    pacman.mouthOpen += 0.05 * pacman.mouthDir;
-    if (pacman.mouthOpen >= 0.3 || pacman.mouthOpen <= 0) pacman.mouthDir *= -1;
-    ctx.fillStyle = 'yellow'; ctx.beginPath();
-    ctx.arc(0, 0, pacman.size, pacman.mouthOpen * Math.PI, (2 - pacman.mouthOpen) * Math.PI);
-    ctx.lineTo(0, 0); ctx.fill(); ctx.restore();
-
-    // Dessin Fantôme
-    ctx.fillStyle = ghost.isScared ? '#1919FF' : ghost.color; 
-    ctx.beginPath(); ctx.arc(ghost.x, ghost.y, ghost.size, Math.PI, 0);
-    ctx.lineTo(ghost.x + ghost.size, ghost.y + ghost.size); ctx.lineTo(ghost.x - ghost.size, ghost.y + ghost.size); ctx.fill();
-    ctx.fillStyle = ghost.isScared ? 'orange' : 'white'; 
-    ctx.beginPath(); ctx.arc(ghost.x - 2.5, ghost.y - 2, 1.8, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(ghost.x + 2.5, ghost.y - 2, 1.8, 0, Math.PI*2); ctx.fill();
-
-    requestAnimationFrame(update);
+        let distance = Math.hypot((g.x + tileSize/2) - (pacman.x + tileSize/2), (g.y + tileSize/2) - (pacman.y + tileSize/2));
+        if (distance < tileSize * 0.8) {
+            if (frightenedTimer > 0 && g.type !== "boss") {
+                score += 200;
+                g.x = 14 * tileSize;
+                g.y = 17 * tileSize;
+            } else {
+                lives--;
+                document.getElementById("lives").innerText = lives;
+                if (lives <= 0) {
+                    gameOver = true;
+                } else {
+                    pacman.x = 14 * tileSize;
+                    pacman.y = 26 * tileSize;
+                    pacman.dx = 0; pacman.dy = 0; pacman.nextDx = 0; pacman.nextDy = 0;
+                }
+            }
+        }
+    });
 }
 
-update();
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < currentMap.length; r++) {
+        for (let c = 0; c < currentMap[r].length; c++) {
+            if (currentMap[r][c] === 1) {
+                ctx.fillStyle = "#111199";
+                ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+                ctx.strokeStyle = "#000055";
+                ctx.strokeRect(c * tileSize, r * tileSize, tileSize, tileSize);
+            } else if (currentMap[r][c] === 0) {
+                ctx.fillStyle = "#ffb8ae";
+                ctx.beginPath();
+                ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (currentMap[r][c] === 3) {
+                if (Math.floor(Date.now() / 200) % 2 === 0) {
+                    ctx.fillStyle = "#ffb8ff";
+                    ctx.beginPath();
+                    ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 7, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (currentMap[r][c] === 4) {
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(c * tileSize + tileSize/3, r * tileSize + tileSize * 0.6, 5, 0, Math.PI * 2);
+                ctx.arc(c * tileSize + tileSize * 0.7, r * tileSize + tileSize * 0.6, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "green";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(c * tileSize + tileSize/2, r * tileSize + 2);
+                ctx.lineTo(c * tileSize + tileSize/3, r * tileSize + tileSize * 0.6);
+                ctx.stroke();
+            }
+        }
+    }
+
+    ctx.fillStyle = pacmanSpeedBonusActive ? "#00FFFF" : "#FFFF00";
+    ctx.beginPath();
+    ctx.arc(pacman.x + tileSize/2, pacman.y + tileSize/2, tileSize/2 - 1, 0.2 * Math.PI, 1.8 * Math.PI); 
+    ctx.lineTo(pacman.x + tileSize/2, pacman.y + tileSize/2);
+    ctx.fill();
+
+    ghosts.forEach(g => {
+        if (frightenedTimer > 0 && g.type !== "boss") {
+            ctx.fillStyle = (frightenedTimer < 2000 && Math.floor(Date.now() / 100) % 2 === 0) ? "white" : "blue";
+        } else {
+            ctx.fillStyle = g.color;
+        }
+
+        if (g.type === "boss") {
+            ctx.shadowColor = "red";
+            ctx.shadowBlur = 10;
+            ctx.fillRect(g.x + 1, g.y + 1, tileSize - 2, tileSize - 2);
+            ctx.shadowBlur = 0;
+            
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(g.x + 4, g.y + 4, 4, 4);
+            ctx.fillRect(g.x + 12, g.y + 4, 4, 4);
+        } else {
+            ctx.beginPath();
+            ctx.arc(g.x + tileSize/2, g.y + tileSize/2, tileSize/2 - 1, Math.PI, 0, false);
+            ctx.lineTo(g.x + tileSize - 1, g.y + tileSize);
+            ctx.lineTo(g.x + 1, g.y + tileSize);
+            ctx.fill();
+        }
+    });
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.8)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "red";
+        ctx.font = "30px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "white";
+        ctx.fillText("Ton pote a gagné cette fois...", canvas.width/2, canvas.height/2 + 40);
+    }
+    if (gameWon) {
+        ctx.fillStyle = "rgba(0,0,0,0.8)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "lime";
+        ctx.font = "30px 'Courier New'";
+        ctx.textAlign = "center";
+        ctx.fillText("VICTOIRE ULTIME !", canvas.width/2, canvas.height/2);
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "white";
+        ctx.fillText("Là, il ne pourra jamais te battre.", canvas.width/2, canvas.height/2 + 40);
+    }
+}
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+// Lancement
+initLevel();
+gameLoop();
