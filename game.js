@@ -257,7 +257,6 @@ function getStartPos(map) {
     return { x: 12 * tileSize, y: 20 * tileSize };
 }
 
-// Nouvelle fonction dédiée pour repositionner les acteurs SANS recharger la carte
 function respawnActors() {
     let pos = getStartPos(currentMap);
     pacman.x = pos.x;
@@ -276,7 +275,6 @@ function respawnActors() {
     pacman.currentSpeed = pacman.baseSpeed;
 }
 
-// Utilisé uniquement au tout début ou lors d'un changement de niveau complet
 function initLevel() {
     currentMap = JSON.parse(JSON.stringify(allLevels[currentLevelIndex]));
     dotsEaten = 0;
@@ -360,7 +358,6 @@ function update() {
 
     if (frightenedTimer > 0) frightenedTimer -= 16.66; 
 
-    // Animation bouche
     if (pacman.dx !== 0 || pacman.dy !== 0) {
         mouthAngle += mouthSpeed;
         if (mouthAngle > 0.4 || mouthAngle < 0.05) {
@@ -468,7 +465,6 @@ function update() {
                     gameOver = true;
                     triggerScreamer(); 
                 } else {
-                    // CORRECTION : On repositionne les acteurs au point de départ sans toucher à la map !
                     respawnActors(); 
                 }
             }
@@ -476,22 +472,16 @@ function update() {
     });
 }
 
-// ==========================================
-// RENDU GRAPHIQUE ORIGINAL RESTAURÉ
-// ==========================================
-
 function drawPacman() {
     ctx.save();
     ctx.translate(pacman.x + tileSize / 2, pacman.y + tileSize / 2);
     
-    // Rotation en fonction de la direction
     if (pacman.dx > 0) ctx.rotate(0);
     else if (pacman.dx < 0) ctx.rotate(Math.PI);
     else if (pacman.dy > 0) ctx.rotate(Math.PI / 2);
     else if (pacman.dy < 0) ctx.rotate(-Math.PI / 2);
 
     ctx.beginPath();
-    // Dessin en forme de camembert (bouche animée)
     ctx.arc(0, 0, (tileSize / 2) - 1, mouthAngle * Math.PI, (2 - mouthAngle) * Math.PI);
     ctx.lineTo(0, 0);
     ctx.fillStyle = "yellow";
@@ -507,7 +497,6 @@ function drawGhosts() {
         let r = (tileSize / 2) - 1;
 
         ctx.beginPath();
-        // Choix de la couleur selon l'état de vulnérabilité
         if (frightenedTimer > 0) {
             if (g.type === "troll") ctx.fillStyle = "#FF0000"; 
             else if (g.type !== "boss") ctx.fillStyle = "blue"; 
@@ -516,10 +505,8 @@ function drawGhosts() {
             ctx.fillStyle = g.color;
         }
 
-        // Tête bombée et corps du fantôme classique
         ctx.arc(x + tileSize / 2, y + tileSize / 2, r, Math.PI, 0, false);
         ctx.lineTo(x + tileSize - 1, y + tileSize);
-        // Vagues en bas du drap
         ctx.lineTo(x + tileSize - 1 - (r/2), y + tileSize - 3);
         ctx.lineTo(x + tileSize - 1 - r, y + tileSize);
         ctx.lineTo(x + r, y + tileSize - 3);
@@ -527,7 +514,6 @@ function drawGhosts() {
         ctx.closePath();
         ctx.fill();
 
-        // Yeux blancs (toujours visibles, regardent vers leur axe dx/dy)
         let eyeOffsetDx = g.dx > 0 ? 1 : g.dx < 0 ? -1 : 0;
         let eyeOffsetDy = g.dy > 0 ? 1 : g.dy < 0 ? -1 : 0;
 
@@ -537,7 +523,6 @@ function drawGhosts() {
         ctx.arc(x + 14 + eyeOffsetDx, y + 7 + eyeOffsetDy, 3, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Pupilles bleues ou noires
         ctx.fillStyle = frightenedTimer > 0 && g.type !== "boss" ? "orange" : "blue";
         ctx.beginPath();
         ctx.arc(x + 6 + eyeOffsetDx * 1.5, y + 7 + eyeOffsetDy * 1.5, 1.5, 0, 2 * Math.PI);
@@ -551,20 +536,17 @@ function drawMap() {
         for (let c = 0; c < currentMap[r].length; c++) {
             let item = currentMap[r][c];
             if (item === 1) {
-                // Style rétro : Murs bleus foncés avec bordures/doublures plus claires
                 ctx.fillStyle = "#0d0d8a";
                 ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
                 ctx.strokeStyle = "#1919b3";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(c * tileSize + 2, r * tileSize + 2, tileSize - 4, tileSize - 4);
             } else if (item === 0) {
-                // Billes standards d'origine (jaune/rose pastel)
                 ctx.fillStyle = "#ffb8ae"; 
                 ctx.beginPath();
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 2.5, 0, 2 * Math.PI);
                 ctx.fill();
             } else if (item === 3) {
-                // Super-billes clignotantes blanches
                 ctx.fillStyle = "white"; 
                 ctx.beginPath();
                 ctx.arc(c * tileSize + tileSize/2, r * tileSize + tileSize/2, 6, 0, 2 * Math.PI);
@@ -597,13 +579,43 @@ function draw() {
     }
 }
 
-function gameLoop() {
-    update();
+// ==========================================
+// BOUCLE DE JEU À PAS FIXE (CORRECTION)
+// ==========================================
+// PROBLÈME CORRIGÉ : la boucle appelait update() une fois par appel de
+// requestAnimationFrame. Or requestAnimationFrame se déclenche au taux de
+// rafraîchissement de l'écran (60Hz, 120Hz, 144Hz, 240Hz...). Sur un écran
+// 120Hz, update() était donc appelée 2x plus souvent que prévu, sur un
+// 144Hz environ 2,4x plus souvent, etc. Résultat : le jeu tournait "en
+// plusieurs fois" plus vite selon l'écran de la personne qui joue.
+// La correction ci-dessous force update() à s'exécuter à un rythme fixe
+// (~60 fois par seconde, comme prévu à l'origine) quel que soit l'écran,
+// tandis que draw() continue de s'afficher à chaque frame pour rester
+// fluide. Aucune vitesse, aucune valeur de jeu n'a été modifiée : seul le
+// minutage de la boucle change.
+const FIXED_STEP_MS = 1000 / 60; // pas de simulation d'origine (~16.66ms)
+const MAX_STEPS_PER_FRAME = 5;   // évite un rattrapage brutal si l'onglet était en arrière-plan
+let lastFrameTime = null;
+let stepAccumulator = 0;
+
+function gameLoop(timestamp) {
+    if (lastFrameTime === null) lastFrameTime = timestamp;
+    let elapsed = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+
+    stepAccumulator += elapsed;
+
+    let stepsDone = 0;
+    while (stepAccumulator >= FIXED_STEP_MS && stepsDone < MAX_STEPS_PER_FRAME) {
+        update();
+        stepAccumulator -= FIXED_STEP_MS;
+        stepsDone++;
+    }
+
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Initialisation au chargement
 initLevel();
 setupMobileControls();
-gameLoop();
+requestAnimationFrame(gameLoop);
